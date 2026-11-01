@@ -73,6 +73,16 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-查询"></span>查询 | Query | 从数据库中按条件取出数据的操作，在 SQL 中用 SELECT 语句完成 | SELECT name, price FROM product; |
+| <span id="g-别名"></span>别名 | Alias | 用 AS 给查询结果中的列（或表）另起的名字，只在这条语句里有效 | price - cost AS 毛利 |
+| <span id="g-DISTINCT"></span>DISTINCT | DISTINCT | SELECT 中的关键字，去掉结果里完全相同的重复行 | SELECT DISTINCT district FROM customer; |
+| <span id="g-通配符"></span>通配符 | Wildcard | LIKE 模式中代表任意字符的符号：% 代表任意多个字符（含 0 个），_ 代表恰好一个字符 | name LIKE '%奶%' |
+| <span id="g-分页"></span>分页 | Pagination | 把很多行结果分成若干页逐页显示，MySQL 中用 LIMIT 跳过若干行再取若干行实现 | LIMIT 10, 5 取第 3 页（每页 5 行） |
+| <span id="g-CASE-表达式"></span>CASE 表达式 | CASE Expression | 按条件从多个值中选一个的 SQL 表达式，CASE WHEN 条件 THEN 值 … ELSE 值 END | CASE WHEN stock = 0 THEN '缺货' ELSE '有货' END |
+| <span id="g-聚合函数"></span>聚合函数 | Aggregate Function | 把多行数据汇总成一个值的函数，如 COUNT 计数、SUM 求和、AVG 平均、MAX 最大、MIN 最小 | COUNT(*)、SUM(stock)、AVG(price) |
+| <span id="g-分组"></span>分组 | Grouping (GROUP BY) | 用 GROUP BY 把某列值相同的行归为一组，再对每组分别做聚合统计 | SELECT category_id, COUNT(*) FROM product GROUP BY category_id; |
+| <span id="g-HAVING"></span>HAVING | HAVING Clause | GROUP BY 之后对分组进行筛选的子句，条件里可以使用聚合函数 | GROUP BY category_id HAVING COUNT(*) >= 7 |
+| <span id="g-执行顺序"></span>执行顺序 | Logical Processing Order | SELECT 语句各子句被数据库处理的先后：FROM、WHERE、GROUP BY、HAVING、SELECT、ORDER BY、LIMIT | WHERE 先于 SELECT，所以 WHERE 里不能用别名 |
 
 ## 第 5 章 多表查询：连接与子查询
 
