@@ -57,6 +57,17 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-声明式语言"></span>声明式语言 | Declarative Language | 只描述想要什么结果、不描述具体执行步骤的编程语言，SQL 是典型代表 | SELECT name FROM product WHERE price < 5; 只说要什么 |
+| <span id="g-DDL"></span>DDL | Data Definition Language | 数据定义语言，用来创建、修改、删除数据库对象，如 CREATE、ALTER、DROP | CREATE TABLE、ALTER TABLE、DROP TABLE |
+| <span id="g-DML"></span>DML | Data Manipulation Language | 数据操纵语言，用来插入、修改、删除表中的数据，如 INSERT、UPDATE、DELETE | INSERT、UPDATE、DELETE |
+| <span id="g-DQL"></span>DQL | Data Query Language | 数据查询语言，即 SELECT 语句，用来从表中查询数据 | SELECT * FROM product; |
+| <span id="g-DCL"></span>DCL | Data Control Language | 数据控制语言，用来授予和收回权限，如 GRANT、REVOKE | GRANT SELECT ON myshop.* TO 'clerk'@'%'; |
+| <span id="g-字符集"></span>字符集 | Character Set | 规定数据库用哪种编码存储文字，中文环境推荐 utf8mb4 | utf8mb4 能存中文和表情符号 |
+| <span id="g-数据类型"></span>数据类型 | Data Type | 规定一列能存什么样的值以及占多大空间，如 INT、DECIMAL、VARCHAR、DATE | INT、DECIMAL(8,2)、VARCHAR(50)、DATE |
+| <span id="g-非空约束"></span>非空约束 | NOT NULL Constraint | 规定某列不允许为空值，写作 NOT NULL | name VARCHAR(50) NOT NULL |
+| <span id="g-唯一约束"></span>唯一约束 | UNIQUE Constraint | 规定某列（或几列组合）的值不能重复，写作 UNIQUE，允许有空值 | phone CHAR(11) UNIQUE |
+| <span id="g-默认值"></span>默认值 | DEFAULT | 插入数据时没有给某列赋值，就自动填入的值，写作 DEFAULT | points INT DEFAULT 0 |
+| <span id="g-检查约束"></span>检查约束 | CHECK Constraint | 规定某列的值必须满足的条件，写作 CHECK (条件)，MySQL 8.0.16 起生效 | CHECK (price > 0) |
 
 ## 第 4 章 单表查询与分组统计
 
