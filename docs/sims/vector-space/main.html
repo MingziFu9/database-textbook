@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>词语向量空间</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .wrap { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
+  #sv { width:100%; max-width:400px; touch-action:none; background:#fff; border:1px solid #cfd8dc; border-radius:6px; }
+  .side { flex:1; min-width:260px; }
+  table.t td, table.t th { font-size:12px; padding:3px 6px; }
+  table.t tr.top td { background:#e8f5e9; font-weight:bold; }
+  .num { font-family:Consolas,monospace; text-align:right; }
+</style>
+</head>
+<body>
+<h1>词语向量空间：拖动查询点，看谁离它最近</h1>
+<div class="sub">操作提示：拖动红色的“查询”点（或点画面任意处把它移过去）。横轴是“能吃 ↔ 日用品”，纵轴是“正餐 ↔ 零食”，坐标由编者手工设定，只为教学。</div>
+<div class="row">
+  <span>按什么排：</span><button class="on" id="bcos">余弦相似度（越大越近）</button><button id="beuc">欧氏距离（越小越近）</button>
+  <span style="margin-left:8px">查询放到：</span><button id="q1">软一点的早餐</button><button id="q2">解馋的零食</button><button id="q3">洗衣服用的</button><button id="q4">早餐（缩短一半）</button>
+</div>
+<div class="wrap">
+  <svg id="sv" viewBox="0 0 400 400"></svg>
+  <div class="side">
+    <div class="box" style="margin-top:0"><div class="mono" id="qv"></div><table class="t" id="tb"></table></div>
+  </div>
+</div>
+<div class="box"><div class="msg" id="msg"></div></div>
+<script src="../common/sim.js"></script>
+<script>
+(function () {
+  var W = [["小米",0.85,-0.58],["燕麦片",0.68,-0.52],["芝麻糊",0.58,-0.36],["鲜肉包",0.86,-0.28],["全麦面包",0.8,-0.12],
+           ["薯片",0.62,0.72],["牛肉干",0.82,0.55],["巧克力",0.38,0.88],["饼干",0.6,0.42],
+           ["洗衣液",-0.6,0.15],["抽纸",-0.55,-0.32],["洗洁精",-0.88,-0.08],["牙膏",-0.72,0.4]];
+  var CL = { 小米:"#1565c0",燕麦片:"#1565c0",芝麻糊:"#1565c0",鲜肉包:"#1565c0",全麦面包:"#1565c0",薯片:"#ef6c00",牛肉干:"#ef6c00",巧克力:"#ef6c00",饼干:"#ef6c00" };
+  var q = [0.7, -0.75], mode = "cos";
+  var sv = document.getElementById("sv");
+  function X(x) { return 200 + x * 175; } function Y(y) { return 200 - y * 175; }
+  function ix(px) { return (px - 200) / 175; } function iy(py) { return (200 - py) / 175; }
+  function cos(a, b) { var d = a[0]*b[0] + a[1]*b[1], n = Math.hypot(a[0],a[1]) * Math.hypot(b[0],b[1]); return n ? d / n : 0; }
+  function euc(a, b) { return Math.hypot(a[0]-b[0], a[1]-b[1]); }
+  function f(v) { return v.toFixed(2); }
+  function render() {
+    var list = W.map(function (w) { var v = [w[1], w[2]]; return { n: w[0], v: v, c: cos(q, v), e: euc(q, v) }; });
+    list.sort(function (a, b) { return mode === "cos" ? b.c - a.c : a.e - b.e; });
+    var top = list.slice(0, 3).map(function (r) { return r.n; });
+    var h = '<line x1="10" y1="200" x2="390" y2="200" stroke="#b0bec5"/><line x1="200" y1="10" x2="200" y2="390" stroke="#b0bec5"/>' +
+      '<text x="388" y="192" text-anchor="end" font-size="11" fill="#78909c">能吃 →</text><text x="12" y="192" font-size="11" fill="#78909c">← 日用品</text>' +
+      '<text x="206" y="20" font-size="11" fill="#78909c">↑ 零食</text><text x="206" y="388" font-size="11" fill="#78909c">↓ 正餐</text>';
+    list.forEach(function (r) { if (top.indexOf(r.n) >= 0) h += '<line x1="' + X(q[0]) + '" y1="' + Y(q[1]) + '" x2="' + X(r.v[0]) + '" y2="' + Y(r.v[1]) + '" stroke="#66bb6a" stroke-width="2" stroke-dasharray="4 3"/>'; });
+    if (mode === "cos") h += '<line x1="200" y1="200" x2="' + X(q[0]) + '" y2="' + Y(q[1]) + '" stroke="#e53935" stroke-width="1.5"/>';
+    W.forEach(function (w) { var t = top.indexOf(w[0]) >= 0;
+      h += '<circle cx="' + X(w[1]) + '" cy="' + Y(w[2]) + '" r="' + (t ? 6 : 4.5) + '" fill="' + (CL[w[0]] || "#6d4c41") + '" stroke="' + (t ? "#2e7d32" : "none") + '" stroke-width="2"/>' +
+           '<text paint-order="stroke" stroke="#fff" stroke-width="3" x="' + (X(w[1]) + 7) + '" y="' + (Y(w[2]) - 5) + '" font-size="12" fill="#37474f">' + w[0] + "</text>"; });
+    h += '<circle id="qp" cx="' + X(q[0]) + '" cy="' + Y(q[1]) + '" r="9" fill="#e53935" stroke="#fff" stroke-width="2" style="cursor:grab"/><text x="' + (X(q[0]) - 12) + '" y="' + (Y(q[1]) + 26) + '" font-size="12" font-weight="bold" fill="#e53935">查询</text>';
+    sv.innerHTML = h;
+    document.getElementById("qv").textContent = "查询向量 = [" + f(q[0]) + ", " + f(q[1]) + "]";
+    document.getElementById("tb").innerHTML = "<tr><th>名次</th><th>词</th><th>余弦相似度</th><th>欧氏距离</th></tr>" +
+      list.map(function (r, i) { return '<tr class="' + (i < 3 ? "top" : "") + '"><td>' + (i + 1) + "</td><td>" + r.n + '</td><td class="num">' + f(r.c) + '</td><td class="num">' + f(r.e) + "</td></tr>"; }).join("");
+    document.getElementById("msg").innerHTML = (mode === "cos" ?
+      "余弦相似度只看<b>方向</b>：从原点到查询点的红线和到某个词的方向越一致，相似度越接近 1；方向相反是 -1。" :
+      "欧氏距离看的是两点之间的<b>直线距离</b>，越小越近。") +
+      " 现在最近的 3 个是：<b>" + top.join("、") + "</b>。试试“早餐（缩短一半）”：方向不变，余弦相似度的排名不变，欧氏距离的排名却可能变。";
+  }
+  function setQ(x, y) { q = [Math.max(-1.1, Math.min(1.1, x)), Math.max(-1.1, Math.min(1.1, y))]; render(); }
+  function pt(e) { var r = sv.getBoundingClientRect(); return [ix((e.clientX - r.left) * 400 / r.width), iy((e.clientY - r.top) * 400 / r.height)]; }
+  var drag = false;
+  sv.addEventListener("pointerdown", function (e) { drag = true; sv.setPointerCapture(e.pointerId); var p = pt(e); setQ(p[0], p[1]); });
+  sv.addEventListener("pointermove", function (e) { if (drag) { var p = pt(e); setQ(p[0], p[1]); } });
+  sv.addEventListener("pointerup", function () { drag = false; });
+  function setMode(m) { mode = m; document.getElementById("bcos").className = m === "cos" ? "on" : ""; document.getElementById("beuc").className = m === "euc" ? "on" : ""; render(); }
+  document.getElementById("bcos").onclick = function () { setMode("cos"); };
+  document.getElementById("beuc").onclick = function () { setMode("euc"); };
+  document.getElementById("q1").onclick = function () { setQ(0.7, -0.75); };
+  document.getElementById("q2").onclick = function () { setQ(0.6, 0.7); };
+  document.getElementById("q3").onclick = function () { setQ(-0.85, 0.05); };
+  document.getElementById("q4").onclick = function () { setQ(0.35, -0.375); };
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HNSW 分层搜索</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .layers { display:flex; gap:8px; flex-wrap:wrap; }
+  .layers > div { flex:1; min-width:200px; }
+  .layers svg { width:100%; background:#fff; border:1px solid #cfd8dc; border-radius:6px; cursor:crosshair; }
+  .ln { font-size:13px; font-weight:600; text-align:center; margin:2px 0; }
+  .stat { font-size:13.5px; }
+  .stat b { font-size:16px; }
+  .legend span { display:inline-block; margin-right:12px; font-size:12px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; margin-right:3px; }
+</style>
+</head>
+<body>
+<h1>HNSW 分层搜索：上层大步跳，下层细细找</h1>
+<div class="sub">操作提示：选一个查询（或在任意一层的画面上点一下放置查询点），调节候选数 ef_search，点“播放”看搜索路线。40 个点是编者生成的教学数据，模拟“成簇”的向量。</div>
+<div class="row">
+  <span>查询：</span><button id="p0">查询 1</button><button id="p1">查询 2</button><button id="p2">查询 3</button>
+  <span style="margin-left:10px">候选数 ef_search = <b id="efv">1</b></span><input type="range" id="ef" min="1" max="10" value="1">
+  <button class="main" id="play">播放</button><button id="show">直接看结果</button>
+</div>
+<div class="legend"><span><i class="dot" style="background:#e53935"></i>查询</span><span><i class="dot" style="background:#fb8c00"></i>比较过的点</span><span><i class="dot" style="background:#1e88e5"></i>当前所在的点（蓝圈：走过的点）</span><span><i class="dot" style="background:#2e7d32"></i>找到的结果</span><span>★ 真正的最近邻</span></div>
+<div class="layers">
+  <div><div class="ln">第 2 层（3 个点）</div><svg id="s2" viewBox="0 0 220 220"></svg></div>
+  <div><div class="ln">第 1 层（10 个点）</div><svg id="s1" viewBox="0 0 220 220"></svg></div>
+  <div><div class="ln">第 0 层（全部 40 个点）</div><svg id="s0" viewBox="0 0 220 220"></svg></div>
+</div>
+<div class="grid2">
+  <div class="box stat" id="stat"></div>
+  <div class="box"><div class="msg" id="msg"></div></div>
+</div>
+<script src="../common/sim.js"></script>
+<script>
+(function () {
+function rng(seed){return function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};}
+function build(seed, n, M0){
+  var r=rng(seed), P=[];
+  // a few clusters to resemble real embeddings
+  var C=[[0.2,0.25],[0.75,0.2],[0.5,0.55],[0.2,0.8],[0.8,0.78]];
+  for(var i=0;i<n;i++){var c=C[i%C.length];P.push([Math.min(.97,Math.max(.03,c[0]+(r()-.5)*.32)),Math.min(.97,Math.max(.03,c[1]+(r()-.5)*.32))]);}
+  // levels: first 3 in L2, first 10 in L1
+  var L=[[],[],[]]; for(i=0;i<n;i++){L[0].push(i); if(i<10)L[1].push(i); if(i<3)L[2].push(i);}
+  var E=[{},{},{}], Ms=[M0,3,2];
+  for(var l=0;l<3;l++){L[l].forEach(function(a){E[l][a]=E[l][a]||[];var s=L[l].filter(function(b){return b!==a;}).sort(function(x,y){return d(P[a],P[x])-d(P[a],P[y]);}).slice(0,Ms[l]);
+    s.forEach(function(b){E[l][b]=E[l][b]||[]; if(E[l][a].indexOf(b)<0)E[l][a].push(b); if(E[l][b].indexOf(a)<0)E[l][b].push(a);});});}
+  return {P:P,L:L,E:E};
+}
+function d(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function searchLayer(G,q,eps,ef,l,log){
+  var vis={},C=[],W=[],cnt=0;
+  eps.forEach(function(e){vis[e]=1;cnt++;var x={i:e,d:d(q,G.P[e])};C.push(x);W.push(x);});
+  while(C.length){C.sort(function(a,b){return a.d-b.d;});var c=C.shift();W.sort(function(a,b){return a.d-b.d;});var f=W[W.length-1];
+    if(c.d>f.d)break; log.push({l:l,at:c.i,W:W.map(function(w){return w.i;})});
+    (G.E[l][c.i]||[]).forEach(function(e){if(vis[e])return;vis[e]=1;cnt++;var de=d(q,G.P[e]);W.sort(function(a,b){return a.d-b.d;});
+      if(W.length<ef||de<W[W.length-1].d){var x={i:e,d:de};C.push(x);W.push(x);W.sort(function(a,b){return a.d-b.d;});if(W.length>ef)W.pop();}});}
+  W.sort(function(a,b){return a.d-b.d;});return {W:W,cnt:cnt,vis:Object.keys(vis).map(Number)};
+}
+function search(G,q,ef){
+  var log=[],ep=[0],total=0,vis=[[],[],[]];
+  for(var l=2;l>=1;l--){var r=searchLayer(G,q,ep,1,l,log);total+=r.cnt;vis[l]=r.vis;ep=[r.W[0].i];}
+  var r0=searchLayer(G,q,ep,ef,0,log);total+=r0.cnt;vis[0]=r0.vis;
+  var best=G.P.map(function(p,i){return i;}).sort(function(a,b){return d(q,G.P[a])-d(q,G.P[b]);})[0];
+  return {found:r0.W[0].i,best:best,cnt:total,log:log,vis:vis,W:r0.W.map(function(w){return w.i;})};
+}
+
+
+  var G = build(1, 40, 2);
+  var PRE = [[0.75, 0.2], [0.25, 0.1], [0.1, 0.55]];
+  var q = PRE[0], ef = 1, R = null, upto = -1, timer = null;
+  function X(v) { return 10 + v * 200; } function Y(v) { return 210 - v * 200; }
+  function draw() {
+    for (var l = 0; l < 3; l++) {
+      var h = "", L = G.L[l], seen = {}, cur = null, path = [];
+      var steps = R ? R.log.slice(0, upto + 1) : [];
+      steps.forEach(function (s) { if (s.l === l) path.push(s.at); });
+      if (steps.length && steps[steps.length - 1].l === l) cur = steps[steps.length - 1].at;
+      L.forEach(function (a) { (G.E[l][a] || []).forEach(function (b) { if (a < b) h += '<line x1="' + X(G.P[a][0]) + '" y1="' + Y(G.P[a][1]) + '" x2="' + X(G.P[b][0]) + '" y2="' + Y(G.P[b][1]) + '" stroke="#cfd8dc" stroke-width="' + (l ? 1.6 : 1) + '"/>'; }); });
+      for (var i = 1; i < path.length; i++) h += '<line x1="' + X(G.P[path[i-1]][0]) + '" y1="' + Y(G.P[path[i-1]][1]) + '" x2="' + X(G.P[path[i]][0]) + '" y2="' + Y(G.P[path[i]][1]) + '" stroke="#1e88e5" stroke-width="2.5"/>';
+      var done = R && upto >= R.log.length - 1, vis = {};
+      if (R && (done || (steps.length && steps[steps.length - 1].l <= l))) {
+        // 已经走到或走过这一层：标出这一层比较过的点
+        var lim = done ? Infinity : 0;
+        (R.vis[l] || []).forEach(function (v) { vis[v] = 1; });
+        if (!done && steps[steps.length - 1].l === l) { vis = {}; steps.forEach(function (s) { if (s.l === l) { vis[s.at] = 1; (G.E[l][s.at] || []).forEach(function (b) { vis[b] = 1; }); } }); }
+      }
+      L.forEach(function (a) {
+        var c = "#90a4ae", r = l ? 5 : 3.5;
+        if (vis[a]) c = "#fb8c00";
+        if (a === cur) { c = "#1e88e5"; r += 1.5; }
+        if (done && l === 0 && a === R.found) { c = "#2e7d32"; r = 6; }
+        h += '<circle cx="' + X(G.P[a][0]) + '" cy="' + Y(G.P[a][1]) + '" r="' + r + '" fill="' + c + '"' + (path.indexOf(a) >= 0 ? ' stroke="#1e88e5" stroke-width="2.5"' : "") + '/>';
+        if (R && l === 0 && a === R.best) h += '<text x="' + X(G.P[a][0]) + '" y="' + (Y(G.P[a][1]) - 6) + '" font-size="13" text-anchor="middle" fill="#2e7d32">★</text>';
+      });
+      if (l > 0 && G.L[l].indexOf(0) >= 0 && l === 2) h += '<text x="' + (X(G.P[0][0]) + 7) + '" y="' + (Y(G.P[0][1]) + 4) + '" font-size="10" fill="#546e7a">入口</text>';
+      h += '<circle cx="' + X(q[0]) + '" cy="' + Y(q[1]) + '" r="5.5" fill="#e53935" stroke="#fff" stroke-width="1.5"/>';
+      document.getElementById("s" + l).innerHTML = h;
+    }
+  }
+  function stat() {
+    var done = R && upto >= R.log.length - 1;
+    if (!done) { document.getElementById("stat").innerHTML = "比较次数：……<br>逐个比较（不用索引）要算 <b>40</b> 次距离。"; return; }
+    var ok = R.found === R.best;
+    document.getElementById("stat").innerHTML = "这次一共算了 <b>" + R.cnt + "</b> 次距离<br>逐个比较（不用索引）要算 <b>40</b> 次<br>找到真正的最近邻了吗？" +
+      (ok ? '<b class="ok">找到了</b>' : '<b class="bad">没找到</b>（找到的是一个“比较近”的点）');
+    document.getElementById("msg").innerHTML = ok ?
+      "从第 2 层的入口出发，每层都走到“离查询更近的邻居”，再下到下一层继续。到第 0 层时已经在目标附近，只比较了一小部分点就找到了答案。" :
+      "第 0 层只保留 " + ef + " 个候选，搜索在一个“局部最近”的地方停住了，没走到真正的最近邻（★）。把 ef_search 调大一点再播放：候选多了，找得更仔细，代价是比较次数增加。这就是召回率和速度的权衡。";
+  }
+  function run(anim) {
+    clearInterval(timer); R = search(G, q, ef);
+    if (!anim) { upto = R.log.length - 1; draw(); stat(); return; }
+    upto = -1; draw(); stat(); document.getElementById("msg").innerHTML = "播放中……蓝色是搜索当前所在的点，蓝线是走过的路。";
+    timer = setInterval(function () { upto++; draw(); if (upto >= R.log.length - 1) { clearInterval(timer); stat(); } }, 450);
+  }
+  [0, 1, 2].forEach(function (i) { document.getElementById("p" + i).onclick = function () { q = PRE[i]; run(false); }; });
+  document.getElementById("ef").oninput = function () { ef = +this.value; document.getElementById("efv").textContent = ef; run(false); };
+  document.getElementById("play").onclick = function () { run(true); };
+  document.getElementById("show").onclick = function () { run(false); };
+  ["s0", "s1", "s2"].forEach(function (id) { var sv = document.getElementById(id); sv.addEventListener("click", function (e) {
+    var r = sv.getBoundingClientRect(), x = ((e.clientX - r.left) * 220 / r.width - 10) / 200, y = (210 - (e.clientY - r.top) * 220 / r.height) / 200;
+    q = [Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y))]; run(false); }); });
+  run(false);
+})();
+</script>
+</body>
+</html>

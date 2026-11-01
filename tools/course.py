@@ -92,8 +92,9 @@ def sims():
         m = re.search(r"（第 (\d+) 章）$", desc)
         out.append({"name": p.parent.name, "title": fm.get("title", p.parent.name),
                     "chapter": int(fm.get("chapter", m.group(1) if m else 0)),
-                    "summary": re.sub(r"（第 \d+ 章）$", "", desc)})
-    return sorted(out, key=lambda s: (s["chapter"], s["name"]))
+                    "summary": re.sub(r"（第 \d+ 章）$", "", desc),
+                    "order": int(fm.get("order", 0))})
+    return sorted(out, key=lambda s: (s["chapter"], s["order"], s["name"]))
 
 
 def sync_sims_index():

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>关系代数五种运算</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .wrap { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+  .tname { font-weight:600; font-size:13px; margin:6px 0 2px; }
+  table.t tr.in td { background:#e3f2fd; }
+  table.t tr.out td { color:#bbb; text-decoration:line-through; }
+  table.t td.dim, table.t th.dim { color:#bbb; }
+  .expr { font-size:18px; font-family:"Times New Roman",serif; margin:4px 0; }
+  .arrow { font-size:22px; color:var(--muted); align-self:center; }
+  #opts label { margin-right:8px; }
+</style>
+</head>
+<body>
+<h1>关系代数五种运算：看两张小表怎样变成结果表</h1>
+<div class="sub">操作提示：先选一种运算，再改下面的条件。蓝色是参加运算并留下的行，划掉的是被去掉的行。数据取自示例库 shop（节选）。</div>
+<div class="row" id="ops"></div>
+<div class="row" id="opts"></div>
+<div class="box">
+  <div class="expr" id="expr"></div>
+  <div class="mono" id="sql"></div>
+  <div class="wrap" id="area"></div>
+  <div class="msg" id="msg"></div>
+</div>
+<div class="note">说明：关系代数里，结果表是“集合”，重复的行只留一行；SQL 默认保留重复行，要写 DISTINCT 才去重。</div>
+<script>
+(function () {
+  var R = { name: "顾客 R", cols: ["customer_id", "name", "district"],
+    rows: [[1,"徐洋娟","滨江花园"],[2,"刘斌","和平路"],[3,"潘梅","滨江花园"],[4,"彭斌子","东风社区"],[5,"徐英萱","学府小区"],[6,"黄超琳","和平路"]] };
+  var T = { name: "订单 T", cols: ["order_id", "customer_id", "amount"],
+    rows: [[144,1,"99.40"],[155,1,"15.90"],[616,3,"91.90"],[1015,5,"113.40"],[1737,7,"45.90"]] };
+  var S = { name: "会员 S", cols: ["customer_id", "name"], rows: [[1,"徐洋娟"],[2,"刘斌"],[4,"彭斌子"],[5,"徐英萱"]] };
+  var U = { name: "下过订单的顾客 U", cols: ["customer_id", "name"], rows: [[1,"徐洋娟"],[3,"潘梅"],[5,"徐英萱"],[7,"梁勇静"]] };
+  var OPS = ["选择 σ", "投影 π", "连接 ⋈", "并 ∪", "差 −"];
+  var op = 0, dist = "滨江花园", cols = { customer_id: false, name: false, district: true }, diffDir = 0;
+  function tbl(t, rowCls, colDim) {
+    return '<div><div class="tname">' + t.name + '</div><table class="t"><tr>' +
+      t.cols.map(function (c, j) { return '<th class="' + (colDim && colDim(j) ? "dim" : "") + '">' + c + "</th>"; }).join("") + "</tr>" +
+      t.rows.map(function (r, i) { return '<tr class="' + (rowCls ? rowCls(r, i) : "") + '">' + r.map(function (v, j) { return '<td class="' + (colDim && colDim(j) ? "dim" : "") + '">' + v + "</td>"; }).join("") + "</tr>"; }).join("") +
+      "</table></div>";
+  }
+  function key(r) { return r.join("|"); }
+  function render() {
+    document.getElementById("ops").innerHTML = OPS.map(function (o, i) { return '<button data-op="' + i + '" class="' + (i === op ? "on" : "") + '">' + o + "</button>"; }).join("");
+    var opts = "", expr = "", sql = "", area = "", msg = "";
+    if (op === 0) {
+      opts = '<span>条件：district =</span> <select id="d">' + ["滨江花园","和平路","东风社区","学府小区","幸福里"].map(function (d) { return "<option" + (d === dist ? " selected" : "") + ">" + d + "</option>"; }).join("") + "</select>";
+      var res = { name: "结果", cols: R.cols, rows: R.rows.filter(function (r) { return r[2] === dist; }) };
+      expr = "σ<sub>district='" + dist + "'</sub>(R)";
+      sql = "SELECT * FROM customer WHERE district = '" + dist + "';";
+      area = tbl(R, function (r) { return r[2] === dist ? "in" : "out"; }) + '<span class="arrow">→</span>' + tbl(res);
+      msg = "选择是“挑行”：留下满足条件的 " + res.rows.length + " 行，列不变。" + (res.rows.length ? "" : "（这几位顾客里没有住在" + dist + "的，结果是空表。）");
+    } else if (op === 1) {
+      opts = "<span>保留的列：</span>" + R.cols.map(function (c) { return '<label><input type="checkbox" data-c="' + c + '"' + (cols[c] ? " checked" : "") + "> " + c + "</label>"; }).join("");
+      var keep = R.cols.map(function (c, j) { return cols[c] ? j : -1; }).filter(function (j) { return j >= 0; });
+      if (!keep.length) { msg = "至少选一列。"; area = tbl(R); }
+      else {
+        var seen = {}, rows = [];
+        R.rows.forEach(function (r) { var x = keep.map(function (j) { return r[j]; }); if (!seen[key(x)]) { seen[key(x)] = 1; rows.push(x); } });
+        var res = { name: "结果", cols: keep.map(function (j) { return R.cols[j]; }), rows: rows };
+        expr = "π<sub>" + res.cols.join(", ") + "</sub>(R)";
+        sql = "SELECT DISTINCT " + res.cols.join(", ") + " FROM customer;";
+        area = tbl(R, null, function (j) { return keep.indexOf(j) < 0; }) + '<span class="arrow">→</span>' + tbl(res);
+        msg = "投影是“挑列”：只留下选中的列。" + (rows.length < R.rows.length ? "6 行变成了 " + rows.length + " 行，因为重复的行只留一行。" : "没有重复行，行数不变。");
+      }
+    } else if (op === 2) {
+      var ids = R.rows.map(function (r) { return r[0]; });
+      var rows = [];
+      T.rows.forEach(function (t) { R.rows.forEach(function (r) { if (r[0] === t[1]) rows.push([t[0], t[1], t[2], r[1], r[2]]); }); });
+      var res = { name: "结果", cols: ["order_id", "customer_id", "amount", "name", "district"], rows: rows };
+      expr = "T ⋈<sub>T.customer_id = R.customer_id</sub> R";
+      sql = "SELECT o.*, c.name, c.district FROM orders o JOIN customer c ON o.customer_id = c.customer_id;";
+      area = tbl(T, function (t) { return ids.indexOf(t[1]) >= 0 ? "in" : "out"; }) +
+        tbl(R, function (r) { return T.rows.some(function (t) { return t[1] === r[0]; }) ? "in" : "out"; }) + '<span class="arrow">→</span>' + tbl(res);
+      msg = "连接把两张表中 customer_id 相等的行拼成一行。订单 1737 的顾客 7 不在 R 里，被丢掉；顾客 2、4、6 没有订单，也不出现；顾客 1 有两笔订单，出现两次。";
+    } else if (op === 3) {
+      var seen = {}, rows = [];
+      S.rows.concat(U.rows).forEach(function (r) { if (!seen[key(r)]) { seen[key(r)] = 1; rows.push(r); } });
+      rows.sort(function (a, b) { return a[0] - b[0]; });
+      var res = { name: "结果", cols: S.cols, rows: rows };
+      expr = "S ∪ U";
+      sql = "SELECT customer_id, name FROM 会员 UNION SELECT customer_id, name FROM 下过订单的顾客;";
+      area = tbl(S, function () { return "in"; }) + tbl(U, function () { return "in"; }) + '<span class="arrow">→</span>' + tbl(res);
+      msg = "并：两张表的行合在一起，重复的只留一行。S 有 4 行、U 有 4 行，其中顾客 1、5 两边都有，所以结果是 4 + 4 − 2 = " + rows.length + " 行。";
+    } else {
+      opts = '<button data-dd="0" class="' + (diffDir === 0 ? "on" : "") + '">S − U</button><button data-dd="1" class="' + (diffDir === 1 ? "on" : "") + '">U − S</button>';
+      var A = diffDir ? U : S, B = diffDir ? S : U;
+      var bk = B.rows.map(key);
+      var res = { name: "结果", cols: S.cols, rows: A.rows.filter(function (r) { return bk.indexOf(key(r)) < 0; }) };
+      expr = diffDir ? "U − S" : "S − U";
+      sql = "SELECT customer_id, name FROM " + (diffDir ? "下过订单的顾客" : "会员") + " EXCEPT SELECT customer_id, name FROM " + (diffDir ? "会员" : "下过订单的顾客") + ";";
+      area = tbl(A, function (r) { return bk.indexOf(key(r)) < 0 ? "in" : "out"; }) + tbl(B) + '<span class="arrow">→</span>' + tbl(res);
+      msg = diffDir ? "U − S：下过订单、但不是会员的顾客。可以提醒他们办会员卡。" : "S − U：是会员、但这几笔订单里没出现的顾客。差运算不满足交换律，S − U 和 U − S 不一样。";
+    }
+    document.getElementById("opts").innerHTML = opts;
+    document.getElementById("expr").innerHTML = expr;
+    document.getElementById("sql").textContent = sql ? "对应 SQL：" + sql : "";
+    document.getElementById("area").innerHTML = area;
+    document.getElementById("msg").textContent = msg;
+    document.querySelectorAll("[data-op]").forEach(function (b) { b.onclick = function () { op = +b.dataset.op; render(); }; });
+    var d = document.getElementById("d"); if (d) d.onchange = function () { dist = d.value; render(); };
+    document.querySelectorAll("[data-c]").forEach(function (c) { c.onchange = function () { cols[c.dataset.c] = c.checked; render(); }; });
+    document.querySelectorAll("[data-dd]").forEach(function (b) { b.onclick = function () { diffDir = +b.dataset.dd; render(); }; });
+  }
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

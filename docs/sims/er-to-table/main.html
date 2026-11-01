@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E-R 图转换成表</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  svg { width:100%; max-width:680px; height:auto; display:block; }
+  .ent rect { fill:#e8eaf6; stroke:#3f51b5; stroke-width:2; }
+  .rel polygon { fill:#fff3e0; stroke:#ef6c00; stroke-width:2; }
+  .attr ellipse { fill:#fff; stroke:#90a4ae; }
+  .attr.pk text { text-decoration:underline; font-weight:bold; }
+  line { stroke:#607d8b; stroke-width:1.5; }
+  .card { fill:#d32f2f; font-weight:bold; font-size:14px; }
+  .tables { display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
+  .tb { border:2px solid var(--accent); border-radius:8px; min-width:150px; overflow:hidden; opacity:0; transform:translateY(8px); transition:all .4s; }
+  .tb.show { opacity:1; transform:none; }
+  .tb.new { border-color:var(--warn); }
+  .tb h3 { margin:0; font-size:13px; background:var(--accent); color:#fff; padding:3px 8px; }
+  .tb.new h3 { background:var(--warn); }
+  .tb div { font-family:Consolas,monospace; font-size:12.5px; padding:2px 8px; border-top:1px solid #eee; }
+  .tb .pk { font-weight:bold; text-decoration:underline; }
+  .tb .fk { color:var(--warn); font-weight:bold; }
+  .tb .fk.hide { display:none; }
+</style>
+</head>
+<body>
+<h1>E-R 图转换成表：外键加在哪一边，什么时候要中间表</h1>
+<div class="sub">操作提示：先选一种联系，再点“下一步”。上面是陈氏表示法的 E-R 图（矩形是实体，菱形是联系，椭圆是属性，下划线是主键），下面是转换出的表。例子来自小店的设计（第 6 章）。</div>
+<div class="row" id="kinds"></div>
+<svg id="er" viewBox="0 0 680 210" role="img" aria-label="E-R 图"></svg>
+<div class="row"><button id="prev">上一步</button><button class="main" id="next">下一步</button><span id="stepn" class="note"></span></div>
+<div class="tables" id="tables"></div>
+<div class="box"><div class="msg" id="msg"></div><div class="mono" id="sql"></div></div>
+<script>
+(function () {
+  var K = {
+    "11": { label:"一对一 1:1", A:["顾客 customer",["customer_id","name","phone"]], B:["会员卡 member",["member_id","level","points"]], R:"办卡", ca:"1", cb:"1", rattr:[],
+      tA:["customer",[["customer_id","pk"],["name"],["phone"]]], tB:["member",[["member_id","pk"],["customer_id","fk","UNIQUE，引用 customer"],["level"],["points"]]],
+      msgs:["一位顾客最多办一张会员卡，一张会员卡只属于一位顾客：一对一联系。","第 1 步：每个实体变成一张表，实体的属性变成列，主键不变。","第 2 步：一对一联系，把一方的主键放到另一方做外键，并加 UNIQUE 保证“一对一”。通常放在“可有可无”的一方（会员卡），因为不是每位顾客都办卡。"],
+      sql:"CREATE TABLE member (\n  member_id INT PRIMARY KEY,\n  customer_id INT NOT NULL UNIQUE,      -- 外键 + 唯一\n  level VARCHAR(10), points INT,\n  FOREIGN KEY (customer_id) REFERENCES customer(customer_id)\n);" },
+    "1n": { label:"一对多 1:N", A:["顾客 customer",["customer_id","name","phone"]], B:["订单 orders",["order_id","order_time","pay_method"]], R:"下单", ca:"1", cb:"N", rattr:[],
+      tA:["customer",[["customer_id","pk"],["name"],["phone"]]], tB:["orders",[["order_id","pk"],["customer_id","fk","引用 customer"],["order_time"],["pay_method"]]],
+      msgs:["一位顾客可以下多笔订单，一笔订单只属于一位顾客：一对多联系。","第 1 步：每个实体变成一张表。","第 2 步：一对多联系，把“一”方的主键放到“多”方做外键。外键一定加在“多”的一边（订单表），反过来在顾客表里放订单号，一位顾客就只能记一笔订单了。"],
+      sql:"CREATE TABLE orders (\n  order_id INT PRIMARY KEY,\n  customer_id INT,                       -- 外键加在“多”方\n  order_time DATETIME, pay_method VARCHAR(10),\n  FOREIGN KEY (customer_id) REFERENCES customer(customer_id)\n);" },
+    "mn": { label:"多对多 M:N", A:["订单 orders",["order_id","order_time"]], B:["商品 product",["product_id","name","price"]], R:"包含", ca:"M", cb:"N", rattr:["quantity","unit_price"],
+      tA:["orders",[["order_id","pk"],["order_time"]]], tB:["product",[["product_id","pk"],["name"],["price"]]],
+      tC:["order_item",[["order_id","pk fk","引用 orders"],["product_id","pk fk","引用 product"],["quantity"],["unit_price"]]],
+      msgs:["一笔订单包含多种商品，一种商品出现在多笔订单里：多对多联系。联系本身还有属性：数量、成交单价。","第 1 步：每个实体变成一张表。","第 2 步：多对多联系不能只靠加外键解决，要单独建一张中间表 order_item：两边的主键都放进来，合起来做主键，同时各自是外键；联系的属性（数量、单价）也放在这张表里。"],
+      sql:"CREATE TABLE order_item (\n  order_id INT, product_id INT,\n  quantity INT NOT NULL, unit_price DECIMAL(8,2) NOT NULL,\n  PRIMARY KEY (order_id, product_id),    -- 两个外键合起来做主键\n  FOREIGN KEY (order_id) REFERENCES orders(order_id),\n  FOREIGN KEY (product_id) REFERENCES product(product_id)\n);" }
+  };
+  var kind = "1n", step = 0;
+  function svg() {
+    var k = K[kind], s = "";
+    function ent(x, name, attrs) {
+      var o = '<g class="ent"><rect x="' + (x - 65) + '" y="85" width="130" height="40" rx="3"/><text x="' + x + '" y="110" text-anchor="middle">' + name + "</text></g>";
+      attrs.forEach(function (a, i) {
+        var ax = x - 70 + i * 70, ay = i % 2 ? 175 : 30;
+        if (attrs.length === 2) ax = x - 45 + i * 90;
+        o += '<line x1="' + x + '" y1="' + (ay < 100 ? 85 : 125) + '" x2="' + ax + '" y2="' + (ay < 100 ? ay + 14 : ay - 14) + '"/>' +
+             '<g class="attr' + (i === 0 ? " pk" : "") + '"><ellipse cx="' + ax + '" cy="' + ay + '" rx="44" ry="14"/><text x="' + ax + '" y="' + (ay + 4) + '" text-anchor="middle" font-size="11">' + a + "</text></g>";
+      });
+      return o;
+    }
+    s += '<line x1="185" y1="105" x2="290" y2="105"/><line x1="390" y1="105" x2="495" y2="105"/>';
+    s += ent(120, k.A[0], k.A[1]) + ent(560, k.B[0], k.B[1]);
+    s += '<g class="rel"><polygon points="340,75 390,105 340,135 290,105"/><text x="340" y="110" text-anchor="middle">' + k.R + "</text></g>";
+    s += '<text class="card" x="230" y="98">' + k.ca + '</text><text class="card" x="440" y="98">' + k.cb + "</text>";
+    k.rattr.forEach(function (a, i) { var ax = 300 + i * 80; s += '<line x1="340" y1="135" x2="' + ax + '" y2="171"/><g class="attr"><ellipse cx="' + ax + '" cy="185" rx="40" ry="14"/><text x="' + ax + '" y="189" text-anchor="middle" font-size="11">' + a + "</text></g>"; });
+    document.getElementById("er").innerHTML = s;
+  }
+  function tb(t, show, isNew, fkShow) {
+    return '<div class="tb' + (show ? " show" : "") + (isNew ? " new" : "") + '"><h3>' + t[0] + (isNew ? "（新建中间表）" : "") + "</h3>" +
+      t[1].map(function (c) { var f = (c[1] || "").indexOf("fk") >= 0; return '<div class="' + (c[1] || "").replace("fk", f ? "fk" + (fkShow ? "" : " hide") : "") + '">' + c[0] + (c[2] ? "  ← " + c[2] : "") + "</div>"; }).join("") + "</div>";
+  }
+  function render() {
+    var k = K[kind];
+    document.getElementById("kinds").innerHTML = Object.keys(K).map(function (x) { return '<button data-k="' + x + '" class="' + (x === kind ? "on" : "") + '">' + K[x].label + "</button>"; }).join("");
+    svg();
+    var t = tb(k.tA, step >= 1, false, step >= 2) + tb(k.tB, step >= 1, false, step >= 2);
+    if (k.tC) t += step >= 2 ? tb(k.tC, true, true, true) : "";
+    document.getElementById("tables").innerHTML = t;
+    document.getElementById("msg").textContent = k.msgs[step];
+    document.getElementById("sql").textContent = step === 2 ? k.sql : "";
+    document.getElementById("sql").style.whiteSpace = "pre";
+    document.getElementById("stepn").textContent = "第 " + step + " / 2 步";
+    document.getElementById("prev").disabled = step === 0; document.getElementById("next").disabled = step === 2;
+    document.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { kind = b.dataset.k; step = 0; render(); }; });
+  }
+  document.getElementById("next").onclick = function () { step = Math.min(2, step + 1); render(); };
+  document.getElementById("prev").onclick = function () { step = Math.max(0, step - 1); render(); };
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

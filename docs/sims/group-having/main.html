@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分组统计与 HAVING</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .baskets { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; margin-top:6px; }
+  .basket { border:2px solid var(--accent); border-radius:10px; padding:6px; background:var(--soft); transition:all .3s; }
+  .basket.gone { border-color:var(--line); background:#f5f5f5; opacity:.45; }
+  .basket h3 { margin:0 0 4px; font-size:13px; }
+  .chip { display:inline-block; font-size:11.5px; background:#fff; border:1px solid var(--line); border-radius:4px; padding:0 4px; margin:1px; }
+  .agg { font-weight:bold; color:var(--accent); font-size:13px; margin-top:3px; }
+  .basket.gone .agg { color:var(--muted); }
+  table.t tr.gone td { color:#bbb; text-decoration:line-through; }
+</style>
+</head>
+<body>
+<h1>分组统计与 HAVING：行怎样落进“篮子”，篮子怎样变成一行</h1>
+<div class="sub">操作提示：选分组的列和聚合函数，每个篮子变成结果中的一行；再打开 HAVING，拖动门槛，看哪些篮子被拿走。数据为示例库 shop 的全部 48 种商品。</div>
+<div class="row">
+  <span>GROUP BY</span><select id="g"><option value="2">category_id（类别）</option><option value="3">supplier_id（供应商）</option></select>
+  <span>聚合函数</span><select id="a"><option value="cnt">COUNT(*)</option><option value="avg">AVG(price)</option><option value="max">MAX(price)</option><option value="sum">SUM(stock)</option></select>
+</div>
+<div class="row">
+  <label><input type="checkbox" id="h"> HAVING</label>
+  <span id="hl"></span>
+  <input type="range" id="th" min="0" max="10" step="1" value="6" aria-label="HAVING 门槛">
+  <b id="thv"></b>
+</div>
+<div class="mono" id="sql" style="margin-top:4px"></div>
+<div class="grid2">
+  <div><div class="baskets" id="baskets"></div></div>
+  <div class="box"><h2>结果表</h2><table class="t" id="res"></table><div class="msg" id="msg"></div></div>
+</div>
+<div class="note">说明：每个篮子的数值和在 MySQL 中执行同一条语句的结果一致（AVG 保留两位小数）。</div>
+<script>
+(function () {
+  var P = [[1,"东北大米 5kg",1,1,39.90,73],[2,"泰国香米 2.5kg",1,1,32.80,78],[3,"花生油 5L",1,1,89.00,85],[4,"菜籽油 5L",1,1,65.00,110],[5,"挂面 1kg",1,1,8.50,0],[6,"全麦面粉 2.5kg",1,1,22.00,78],[7,"小米 1kg",1,4,15.80,25],[8,"燕麦片 1kg",2,2,26.90,91],[9,"即食豆浆粉 30 包",2,2,29.90,72],[10,"芝麻糊 600g",2,2,18.80,73],[11,"速溶咖啡 40 条",2,2,45.00,120],[12,"全麦面包 400g",2,2,12.90,92],[13,"鲜肉包 6 个",2,2,15.00,70],[14,"原味薯片 104g",3,7,8.90,8],[15,"每日坚果 25g×30",3,7,99.00,81],[16,"苏打饼干 400g",3,7,13.50,83],[17,"牛肉干 100g",3,7,35.00,97],[18,"话梅 150g",3,7,9.90,82],[19,"海苔 40g",3,7,16.80,76],[20,"矿泉水 550ml×24",4,8,28.00,73],[21,"可乐 330ml×6",4,8,15.90,67],[22,"无糖绿茶 500ml",4,8,4.50,49],[23,"橙汁 1L",4,8,13.80,0],[24,"凉茶 310ml×12",4,8,36.00,31],[25,"纯牛奶 250ml×16",5,3,52.00,88],[26,"低脂牛奶 1L",5,3,15.50,114],[27,"原味酸奶 100g×8",5,3,19.90,74],[28,"儿童奶酪棒 20 支",5,3,39.90,37],[29,"鸡蛋 30 枚",6,4,26.00,100],[30,"西红柿 500g",6,4,5.80,71],[31,"香蕉 1kg",6,4,9.90,110],[32,"苹果 1kg",6,4,12.80,8],[33,"生菜 300g",6,4,4.50,96],[34,"土豆 1kg",6,4,6.50,118],[35,"豆腐 400g",6,4,4.00,52],[36,"生抽 500ml",7,5,12.90,115],[37,"老抽 500ml",7,5,13.90,68],[38,"米醋 500ml",7,5,8.80,103],[39,"食盐 400g",7,5,3.50,77],[40,"蚝油 700g",7,5,16.50,69],[41,"火锅底料 200g",7,5,19.90,8],[42,"抽纸 3 层×10 包",8,6,25.90,73],[43,"洗洁精 1.5kg",8,6,14.90,95],[44,"洗衣液 3kg",8,6,45.90,75],[45,"垃圾袋 100 只",8,6,9.90,24],[46,"牙膏 120g",8,6,15.80,107],[47,"五号电池 8 节",8,6,19.80,30],[48,"保鲜膜 30m",8,6,12.50,13]];
+  var CAT = {1:"粮油米面",2:"早餐冲饮",3:"休闲零食",4:"饮料",5:"乳制品",6:"生鲜果蔬",7:"调味品",8:"日用百货"};
+  var SUP = {1:"禾丰粮油",2:"晨光食品",3:"南粤乳业",4:"岭南果蔬",5:"百味调料",6:"洁家日用",7:"开心零食",8:"清泉饮品"};
+  var AGG = { cnt: { sql:"COUNT(*)", f:function (g) { return g.length; }, max:10, step:1, d:0, def:6 },
+              avg: { sql:"AVG(price)", f:function (g) { return g.reduce(function (s, p) { return s + p[4]; }, 0) / g.length; }, max:50, step:1, d:2, def:25 },
+              max: { sql:"MAX(price)", f:function (g) { return Math.max.apply(null, g.map(function (p) { return p[4]; })); }, max:100, step:1, d:2, def:40 },
+              sum: { sql:"SUM(stock)", f:function (g) { return g.reduce(function (s, p) { return s + p[5]; }, 0); }, max:700, step:10, d:0, def:450 } };
+  var gEl = document.getElementById("g"), aEl = document.getElementById("a"), hEl = document.getElementById("h"), th = document.getElementById("th");
+  function setRange() { var A = AGG[aEl.value]; th.max = A.max; th.step = A.step; th.value = A.def; }
+  function render() {
+    var gi = +gEl.value, A = AGG[aEl.value], col = gi === 2 ? "category_id" : "supplier_id", names = gi === 2 ? CAT : SUP;
+    var t = +th.value, useH = hEl.checked;
+    document.getElementById("thv").textContent = t;
+    document.getElementById("hl").textContent = A.sql + " >";
+    th.disabled = !useH;
+    var groups = {};
+    P.forEach(function (p) { (groups[p[gi]] = groups[p[gi]] || []).push(p); });
+    var keys = Object.keys(groups).map(Number).sort(function (x, y) { return x - y; });
+    var kept = 0;
+    var bHtml = "", rHtml = "<tr><th>" + col + "</th><th>（名称）</th><th>" + A.sql + "</th></tr>";
+    keys.forEach(function (k) {
+      var v = A.f(groups[k]), vs = A.d ? (Math.round(v * 100 + 1e-9) / 100).toFixed(2) : String(v);
+      var gone = useH && !(v > t);
+      if (!gone) kept++;
+      bHtml += '<div class="basket' + (gone ? " gone" : "") + '"><h3>' + col + " = " + k + "（" + names[k] + "）</h3>" +
+        groups[k].map(function (p) { return '<span class="chip">' + p[1] + "</span>"; }).join("") + '<div class="agg">' + A.sql + " = " + vs + (gone ? " ✗ 被 HAVING 拿走" : "") + "</div></div>";
+      rHtml += '<tr class="' + (gone ? "gone" : "") + '"><td>' + k + "</td><td>" + names[k] + "</td><td>" + vs + "</td></tr>";
+    });
+    document.getElementById("baskets").innerHTML = bHtml;
+    document.getElementById("res").innerHTML = rHtml;
+    document.getElementById("sql").textContent = "SELECT " + col + ", " + A.sql + " FROM product GROUP BY " + col + (useH ? " HAVING " + A.sql + " > " + t : "") + ";";
+    document.getElementById("msg").textContent = "48 行商品分成了 " + keys.length + " 个篮子，结果有 " + kept + " 行。" + (useH ? "HAVING 筛的是“组”，所以条件里写的是聚合函数；WHERE 筛的是“行”，在分组之前执行。" : "每个篮子在结果里只剩一行，所以 SELECT 里除了分组的列，只能写聚合函数。");
+  }
+  gEl.onchange = render; aEl.onchange = function () { setRange(); render(); }; hEl.onchange = render; th.oninput = render;
+  setRange(); render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

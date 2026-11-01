@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SELECT 的执行顺序</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .code { font-family:Consolas,monospace; font-size:13px; background:#f8f9fb; border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  .code div { padding:1px 4px; border-radius:4px; transition:background .2s; }
+  .code div.cur { background:#fff3cd; font-weight:bold; }
+  .code div.done { color:var(--muted); }
+  .code .n { display:inline-block; width:1.6em; color:var(--accent); font-weight:bold; }
+  .steps { display:flex; gap:4px; flex-wrap:wrap; margin:6px 0; }
+  .steps span { font-size:12px; padding:2px 8px; border-radius:10px; background:#eceff1; }
+  .steps span.cur { background:var(--accent); color:#fff; }
+  .steps span.done { background:var(--soft); color:var(--accent); }
+  .rows { max-height:330px; overflow:auto; }
+  table.t tr.drop td { color:#ccc; text-decoration:line-through; }
+  table.t td.g { font-weight:bold; }
+  .grp { margin:3px 0; padding:3px 6px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
+  .grp.drop { opacity:.4; text-decoration:line-through; }
+</style>
+</head>
+<body>
+<h1>SELECT 的执行顺序：数据库先做什么、后做什么</h1>
+<div class="sub">操作提示：点“下一步”，左边高亮当前执行的子句（编号是执行顺序），右边显示这一步之后的中间结果。数据为示例库 shop 的商品表，结果与 MySQL 实际执行一致。</div>
+<div class="grid2">
+  <div>
+    <div class="code" id="code"></div>
+    <div class="steps" id="steps"></div>
+    <div class="row"><button id="prev">上一步</button><button class="main" id="next">下一步</button><button id="reset">从头开始</button></div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="box"><h2 id="title"></h2><div class="rows" id="out"></div></div>
+</div>
+<div class="note">说明：书写顺序是 SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT；执行顺序是左边的编号 1—7。</div>
+<script>
+(function () {
+  var P = [[1,"东北大米 5kg",1,39.90,73],[2,"泰国香米 2.5kg",1,32.80,78],[3,"花生油 5L",1,89.00,85],[4,"菜籽油 5L",1,65.00,110],[5,"挂面 1kg",1,8.50,0],[6,"全麦面粉 2.5kg",1,22.00,78],[7,"小米 1kg",1,15.80,25],[8,"燕麦片 1kg",2,26.90,91],[9,"即食豆浆粉 30 包",2,29.90,72],[10,"芝麻糊 600g",2,18.80,73],[11,"速溶咖啡 40 条",2,45.00,120],[12,"全麦面包 400g",2,12.90,92],[13,"鲜肉包 6 个",2,15.00,70],[14,"原味薯片 104g",3,8.90,8],[15,"每日坚果 25g×30",3,99.00,81],[16,"苏打饼干 400g",3,13.50,83],[17,"牛肉干 100g",3,35.00,97],[18,"话梅 150g",3,9.90,82],[19,"海苔 40g",3,16.80,76],[20,"矿泉水 550ml×24",4,28.00,73],[21,"可乐 330ml×6",4,15.90,67],[22,"无糖绿茶 500ml",4,4.50,49],[23,"橙汁 1L",4,13.80,0],[24,"凉茶 310ml×12",4,36.00,31],[25,"纯牛奶 250ml×16",5,52.00,88],[26,"低脂牛奶 1L",5,15.50,114],[27,"原味酸奶 100g×8",5,19.90,74],[28,"儿童奶酪棒 20 支",5,39.90,37],[29,"鸡蛋 30 枚",6,26.00,100],[30,"西红柿 500g",6,5.80,71],[31,"香蕉 1kg",6,9.90,110],[32,"苹果 1kg",6,12.80,8],[33,"生菜 300g",6,4.50,96],[34,"土豆 1kg",6,6.50,118],[35,"豆腐 400g",6,4.00,52],[36,"生抽 500ml",7,12.90,115],[37,"老抽 500ml",7,13.90,68],[38,"米醋 500ml",7,8.80,103],[39,"食盐 400g",7,3.50,77],[40,"蚝油 700g",7,16.50,69],[41,"火锅底料 200g",7,19.90,8],[42,"抽纸 3 层×10 包",8,25.90,73],[43,"洗洁精 1.5kg",8,14.90,95],[44,"洗衣液 3kg",8,45.90,75],[45,"垃圾袋 100 只",8,9.90,24],[46,"牙膏 120g",8,15.80,107],[47,"五号电池 8 节",8,19.80,30],[48,"保鲜膜 30m",8,12.50,13]];
+  var LINES = [[5, "SELECT category_id, COUNT(*) AS 商品数, ROUND(AVG(price), 2) AS 平均价"], [1, "FROM product"], [2, "WHERE stock > 0"],
+               [3, "GROUP BY category_id"], [4, "HAVING COUNT(*) >= 6"], [6, "ORDER BY 平均价 DESC"], [7, "LIMIT 3;"]];
+  var NAMES = ["", "FROM", "WHERE", "GROUP BY", "HAVING", "SELECT", "ORDER BY", "LIMIT"];
+  var MSG = ["点“下一步”开始执行。注意：写在最前面的 SELECT，执行编号却是 5。",
+    "① FROM：先找到 product 表，拿到全部 48 行。",
+    "② WHERE：一行一行检查 stock > 0，挂面和橙汁库存为 0，被去掉，剩 46 行。此时还没有分组，所以 WHERE 里不能写 COUNT(*)。",
+    "③ GROUP BY：把 46 行按 category_id 放进 8 个组。",
+    "④ HAVING：去掉商品数少于 6 的组。饮料（去掉橙汁后剩 4）、乳制品（4）被拿走，剩 6 组。",
+    "⑤ SELECT：每组算出一行：类别、商品数、平均价。别名“平均价”到这一步才产生，所以 WHERE 里不能用它。",
+    "⑥ ORDER BY：按平均价从高到低排。ORDER BY 在 SELECT 之后，所以可以用别名“平均价”。",
+    "⑦ LIMIT：只取前 3 行。这就是最终结果，和 MySQL 的执行结果一致。"];
+  var step = 0;
+  function groups(rows) { var g = {}; rows.forEach(function (p) { (g[p[2]] = g[p[2]] || []).push(p); }); return g; }
+  function avg(g) { return (Math.round(g.reduce(function (s, p) { return s + p[3]; }, 0) / g.length * 100 + 1e-9) / 100).toFixed(2); }
+  function render() {
+    document.getElementById("code").innerHTML = LINES.map(function (l) { return '<div class="' + (l[0] === step ? "cur" : l[0] < step ? "done" : "") + '"><span class="n">' + l[0] + "</span>" + l[1] + "</div>"; }).join("");
+    document.getElementById("steps").innerHTML = NAMES.slice(1).map(function (n, i) { return '<span class="' + (i + 1 === step ? "cur" : i + 1 < step ? "done" : "") + '">' + (i + 1) + " " + n + "</span>"; }).join("");
+    document.getElementById("msg").textContent = MSG[step];
+    var out = "", title = "";
+    var where = P.filter(function (p) { return p[4] > 0; });
+    var g = groups(where), keys = Object.keys(g).map(Number);
+    var kept = keys.filter(function (k) { return g[k].length >= 6; });
+    var sel = kept.map(function (k) { return [k, g[k].length, avg(g[k])]; });
+    var ord = sel.slice().sort(function (a, b) { return b[2] - a[2]; });
+    if (step === 0) { title = "（还没开始）"; }
+    else if (step <= 2) {
+      title = step === 1 ? "FROM 之后：48 行" : "WHERE 之后：46 行（划掉的被去掉）";
+      out = '<table class="t"><tr><th>product_id</th><th>name</th><th>category_id</th><th>price</th><th>stock</th></tr>' +
+        P.map(function (p) { return '<tr class="' + (step === 2 && p[4] <= 0 ? "drop" : "") + '"><td>' + p[0] + "</td><td>" + p[1] + "</td><td>" + p[2] + "</td><td>" + p[3].toFixed(2) + "</td><td>" + p[4] + "</td></tr>"; }).join("") + "</table>";
+    } else if (step <= 4) {
+      title = step === 3 ? "GROUP BY 之后：8 个组" : "HAVING 之后：剩 6 个组";
+      out = keys.map(function (k) { return '<div class="grp' + (step === 4 && g[k].length < 6 ? " drop" : "") + '"><b>category_id = ' + k + "</b>（" + g[k].length + " 行）：" + g[k].map(function (p) { return p[1]; }).join("、") + "</div>"; }).join("");
+    } else {
+      var rows = step === 5 ? sel : step === 6 ? ord : ord.slice(0, 3);
+      title = ["", "", "", "", "", "SELECT 之后：每组一行", "ORDER BY 之后：按平均价降序", "LIMIT 之后：最终结果 3 行"][step];
+      out = '<table class="t"><tr><th>category_id</th><th>商品数</th><th>平均价</th></tr>' + rows.map(function (r) { return "<tr><td>" + r.join("</td><td>") + "</td></tr>"; }).join("") + "</table>";
+    }
+    document.getElementById("title").textContent = title;
+    document.getElementById("out").innerHTML = out;
+    document.getElementById("prev").disabled = step === 0;
+    document.getElementById("next").disabled = step === 7;
+  }
+  document.getElementById("next").onclick = function () { if (step < 7) step++; render(); };
+  document.getElementById("prev").onclick = function () { if (step > 0) step--; render(); };
+  document.getElementById("reset").onclick = function () { step = 0; render(); };
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

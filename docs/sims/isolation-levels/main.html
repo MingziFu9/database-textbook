@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隔离级别与并发问题</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  table.tl { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.tl th, table.tl td { border:1px solid #cfd8dc; padding:5px 6px; vertical-align:top; }
+  table.tl th { background:#eceff1; }
+  table.tl td.no { width:28px; text-align:center; color:#78909c; }
+  table.tl td code { font-size:12px; }
+  table.tl tr.hide td { opacity:.15; }
+  table.tl tr.cur td { background:#fffde7; }
+  .val { font-weight:bold; font-family:Consolas,monospace; }
+  .val.badv { color:var(--neg); } .val.goodv { color:#2e7d32; }
+  .wait { color:#e65100; font-weight:bold; }
+  .lab { font-size:13px; margin-right:4px; }
+</style>
+</head>
+<body>
+<h1>隔离级别与并发问题：两个收银台同时操作</h1>
+<div class="sub">操作提示：先选 B 的隔离级别和一个场景，再点“下一步”按时间顺序执行。商品是 14 号原味薯片（原价 8.90），“库存不足 10 件的商品”原有 5 种。</div>
+<div class="row"><span class="lab">B 的隔离级别：</span><span id="lv"></span></div>
+<div class="row"><span class="lab">场景：</span><span id="sc"></span></div>
+<div class="row"><button id="prev">上一步</button><button class="main" id="next">下一步</button><button id="all">全部显示</button></div>
+<div class="box"><table class="tl" id="tl"></table></div>
+<div class="box"><div class="msg" id="msg"></div></div>
+<script src="../common/sim.js"></script>
+<script>
+(function () {
+  var LV = ["READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"];
+  var LVZ = ["读未提交", "读已提交", "可重复读（MySQL 默认）", "串行化"];
+  var SC = ["脏读", "不可重复读", "幻读"];
+  var lv = 2, sc = 0, step = 0;
+  var P = "SELECT price FROM product WHERE product_id = 14;";
+  var N = "SELECT COUNT(*) FROM product WHERE stock &lt; 10;";
+  function v(x, bad) { return ' → <span class="val ' + (bad ? "badv" : "goodv") + '">' + x + "</span>"; }
+  // 返回 [ [A 的操作, B 的操作], ... ]，以及结论
+  function script() {
+    var ser = lv === 3;
+    if (sc === 0) {
+      var r = lv === 0;
+      return { rows: [
+        ["<code>START TRANSACTION;</code>", "<code>START TRANSACTION;</code>"],
+        ["<code>UPDATE product SET price = 9.90 WHERE product_id = 14;</code><br>（改了，<b>还没提交</b>）", ""],
+        ["", "<code>" + P + "</code>" + (ser ? '<br><span class="wait">等待：A 改的这一行被锁住，B 要等 A 结束</span>' : v(r ? "9.90" : "8.90", r))],
+        ["<code>ROLLBACK;</code>（撤销改价）", ser ? "A 结束后，B 的查询继续执行" + v("8.90") : ""],
+        ["", "<code>" + P + "</code>" + v("8.90") + "<br><code>COMMIT;</code>"]],
+        end: r ? "出现<b>脏读</b>：B 读到了 9.90，可这个价格被 A 撤销了，从来没有真正存在过。" :
+             ser ? "串行化下，B 的读要等 A 先结束，读不到未提交的数据，没有脏读，但 B 要排队等。" :
+             "没有脏读：A 没提交的修改，B 看不到，读到的还是 8.90。" };
+    }
+    if (sc === 1) {
+      var bad = lv <= 1;
+      return { rows: [
+        ["", "<code>START TRANSACTION;</code><br><code>" + P + "</code>" + v("8.90")],
+        ["<code>UPDATE product SET price = 9.90 WHERE product_id = 14;</code><br>（自动提交）" + (ser ? '<br><span class="wait">等待：B 读过这一行，串行化下 B 持有锁，A 改不了</span>' : ""), ""],
+        ["", "<code>" + P + "</code>" + v(bad ? "9.90" : "8.90", bad)],
+        [ser ? "B 提交后，A 的修改才执行并提交" : "", "<code>COMMIT;</code><br><code>" + P + "</code>" + v("9.90")]],
+        end: bad ? "出现<b>不可重复读</b>：同一个事务里两次读同一行，8.90 变成了 9.90。" :
+             ser ? "串行化下 A 的修改要等 B 的事务结束，B 两次读都是 8.90；代价是 A 被挡住等待。" :
+             "可重复读：B 的事务里两次读都是 8.90（读的是事务开始时的快照）；B 提交后再读，才看到 A 改的 9.90。" };
+    }
+    var badp = lv <= 1;
+    return { rows: [
+      ["", "<code>START TRANSACTION;</code><br><code>" + N + "</code>" + v("5")],
+      ["<code>INSERT INTO product ...</code>（新商品，库存 3）<br>（自动提交）" + (ser ? '<br><span class="wait">等待：B 查过这个范围，串行化下不让往里插</span>' : ""), ""],
+      ["", "<code>" + N + "</code>" + v(badp ? "6" : "5", badp)],
+      [ser ? "B 提交后，A 的插入才执行并提交" : "", "<code>COMMIT;</code><br><code>" + N + "</code>" + v("6")]],
+      end: badp ? "出现<b>幻读</b>：同样的条件查两次，5 种变成 6 种，多出来一行“幻影”。" :
+           ser ? "串行化下 A 的插入要等 B 结束，B 两次都数到 5 种。" :
+           "MySQL 的可重复读读的是快照，看不到 A 新插入的行，两次都是 5 种。按 SQL 标准这一级别允许幻读，InnoDB 做了加强。" };
+  }
+  function btns(id, arr, cur, set) {
+    document.getElementById(id).innerHTML = arr.map(function (s, i) { return '<button data-i="' + i + '" class="' + (i === cur ? "on" : "") + '">' + s + "</button>"; }).join(" ");
+    Array.prototype.forEach.call(document.querySelectorAll("#" + id + " button"), function (b) { b.onclick = function () { set(+b.dataset.i); step = 0; render(); }; });
+  }
+  function render() {
+    btns("lv", LVZ, lv, function (i) { lv = i; });
+    btns("sc", SC, sc, function (i) { sc = i; });
+    var s = script(), n = s.rows.length;
+    document.getElementById("tl").innerHTML = '<tr><th></th><th>会话 A（收银台 1）</th><th>会话 B（收银台 2）<br><span style="font-weight:normal">SET SESSION TRANSACTION ISOLATION LEVEL ' + LV[lv] + "</span></th></tr>" +
+      s.rows.map(function (r, i) { return '<tr class="' + (i >= step ? "hide" : (i === step - 1 ? "cur" : "")) + '"><td class="no">' + (i + 1) + "</td><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("");
+    document.getElementById("msg").innerHTML = step >= n ? s.end + '<br><span class="note">这些结果在 MySQL 8.4.13 上实测（实验 9-2）。</span>' : (step === 0 ? "点“下一步”，按时间顺序执行第 1 步。" : "已执行到第 " + step + " 步，共 " + n + " 步。");
+    document.getElementById("prev").disabled = step === 0;
+    document.getElementById("next").disabled = step >= n;
+  }
+  document.getElementById("next").onclick = function () { step++; render(); };
+  document.getElementById("prev").onclick = function () { step--; render(); };
+  document.getElementById("all").onclick = function () { step = script().rows.length; render(); };
+  render();
+})();
+</script>
+</body>
+</html>

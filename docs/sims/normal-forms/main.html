@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>从大表到第三范式</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .tables { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start; }
+  .tname { font-weight:600; font-size:13px; margin:4px 0 2px; }
+  table.t { font-size:12px; }
+  table.t th.k { text-decoration:underline; }
+  .o { background:#e3f2fd !important; } .p { background:#e8f5e9 !important; } .f { background:#f3e5f5 !important; } .c { background:#fff3e0 !important; }
+  table.t td.dup { color:var(--neg); font-weight:bold; }
+  .fd { font-family:Consolas,monospace; font-size:12.5px; margin:2px 0; padding:2px 6px; border-radius:4px; display:inline-block; }
+  .stepbar span { font-size:12px; padding:2px 8px; border-radius:10px; background:#eceff1; margin-right:4px; }
+  .stepbar span.cur { background:var(--accent); color:#fff; }
+</style>
+</head>
+<body>
+<h1>从大表到第三范式：找出依赖，一步步拆开</h1>
+<div class="sub">操作提示：点“下一步”。颜色表示列由谁决定：蓝色只靠 order_id，绿色只靠 product_id，紫色要靠 (order_id, product_id) 整个码，橙色靠 customer_id。表中只显示前 8 行，括号里是实验 7-2 中的完整行数。</div>
+<div class="row stepbar" id="bar"></div>
+<div class="row"><button id="prev">上一步</button><button class="main" id="next">下一步</button></div>
+<div id="fds"></div>
+<div class="tables" id="tables"></div>
+<div class="box"><div class="msg" id="msg"></div></div>
+<script>
+(function () {
+  var W = [[46,"2025-01-11 18:31",26,"郑伟涛","10042599677",13,"鲜肉包 6 个","早餐冲饮","15.00",3],[46,"2025-01-11 18:31",26,"郑伟涛","10042599677",19,"海苔 40g","休闲零食","16.80",1],
+           [46,"2025-01-11 18:31",26,"郑伟涛","10042599677",33,"生菜 300g","生鲜果蔬","4.50",2],[47,"2025-01-11 07:52",77,"高轩轩","10014833541",11,"速溶咖啡 40 条","早餐冲饮","45.00",3],
+           [47,"2025-01-11 07:52",77,"高轩轩","10014833541",19,"海苔 40g","休闲零食","16.80",2],[47,"2025-01-11 07:52",77,"高轩轩","10014833541",29,"鸡蛋 30 枚","生鲜果蔬","26.00",1],
+           [48,"2025-01-11 20:34",77,"高轩轩","10014833541",27,"原味酸奶 100g×8","乳制品","19.90",1],[48,"2025-01-11 20:34",77,"高轩轩","10014833541",29,"鸡蛋 30 枚","生鲜果蔬","26.00",2]];
+  var COLS = ["order_id","order_time","customer_id","customer_name","customer_phone","product_id","product_name","category_name","unit_price","quantity"];
+  var STEPS = ["大表（1NF）", "找部分依赖", "拆到 2NF", "找传递依赖", "拆到 3NF"];
+  var step = 0;
+  function proj(idx, keyN) { var seen = {}, out = []; W.forEach(function (r) { var x = idx.map(function (i) { return r[i]; }); var k = x.join("|"); if (!seen[k]) { seen[k] = 1; out.push(x); } }); return out; }
+  function tbl(name, idx, keys, colCls, rows, count, dupMark) {
+    var seen = {};
+    return '<div><div class="tname">' + name + "（" + count + " 行）</div><table class=\"t\"><tr>" +
+      idx.map(function (i) { return '<th class="' + (keys.indexOf(i) >= 0 ? "k " : "") + (colCls[i] || "") + '">' + COLS[i] + "</th>"; }).join("") + "</tr>" +
+      rows.map(function (r, ri) { return "<tr>" + r.map(function (v, j) {
+        var i = idx[j], d = "";
+        if (dupMark && dupMark.indexOf(i) >= 0) { var k = i + ":" + r[0] + ":" + v; if (i >= 5) k = i + ":" + r[5] + ":" + v; if (seen[k]) d = " dup"; seen[k] = 1; }
+        return '<td class="' + (colCls[i] || "") + d + '">' + v + "</td>"; }).join("") + "</tr>"; }).join("") + "</table></div>";
+  }
+  function render() {
+    document.getElementById("bar").innerHTML = STEPS.map(function (s, i) { return '<span class="' + (i === step ? "cur" : "") + '">' + i + " " + s + "</span>"; }).join("");
+    var all = [0,1,2,3,4,5,6,7,8,9], none = {}, color = {0:"",1:"o",2:"o",3:"o",4:"o",5:"",6:"p",7:"p",8:"f",9:"f"};
+    var color3 = {0:"",1:"o",2:"o",3:"c",4:"c",5:"",6:"p",7:"p",8:"f",9:"f"};
+    var fds = "", t = "", msg = "";
+    if (step === 0) {
+      t = tbl("order_wide", all, [0,5], none, W, 174, [1,2,3,4,6,7]);
+      fds = '<span class="fd">码：(order_id, product_id)</span>';
+      msg = "每一格只有一个值，满足第一范式。但是红色的值都是重复存储的：郑伟涛的电话存了 3 遍，高轩轩的信息存了 5 遍，“海苔 40g 属于休闲零食”存了 2 遍。重复就会带来更新异常、插入异常和删除异常。";
+    } else if (step === 1) {
+      t = tbl("order_wide", all, [0,5], color, W, 174);
+      fds = '<span class="fd o">order_id → order_time, customer_id, customer_name, customer_phone</span> <span class="fd p">product_id → product_name, category_name</span> <span class="fd f">(order_id, product_id) → unit_price, quantity</span>';
+      msg = "蓝色和绿色的列只靠码的一部分就能确定，是部分依赖，所以 order_wide 不满足第二范式。只有紫色的 unit_price、quantity 完全依赖于整个码。";
+    } else if (step === 2) {
+      t = tbl("orders2", [0,1,2,3,4], [0], color, proj([0,1,2,3,4]), 82) + tbl("product2", [5,6,7], [5], color, proj([5,6,7]), 45) + tbl("item", [0,5,8,9], [0,5], color, proj([0,5,8,9]), 174);
+      fds = '<span class="fd">拆法：把部分依赖的列和它的决定因素拿出去单独成表</span>';
+      msg = "拆成 3 张表，每张表的非主属性都完全依赖于自己的码，满足第二范式。商品信息每种只存一次（45 行）。";
+    } else if (step === 3) {
+      t = tbl("orders2", [0,1,2,3,4], [0], color3, proj([0,1,2,3,4]), 82, [3,4]) + tbl("product2", [5,6,7], [5], color, proj([5,6,7]), 45) + tbl("item", [0,5,8,9], [0,5], color, proj([0,5,8,9]), 174);
+      fds = '<span class="fd o">order_id → customer_id</span> <span class="fd c">customer_id → customer_name, customer_phone</span>';
+      msg = "orders2 里还有传递依赖：order_id 决定 customer_id，customer_id 又决定姓名和电话。高轩轩下了 2 单，姓名电话还是存了 2 遍（红色），换手机号时仍会改不全。";
+    } else {
+      t = tbl("customer3", [2,3,4], [2], color3, proj([2,3,4]), 13) + tbl("orders3", [0,1,2], [0], color3, proj([0,1,2]), 82) + tbl("product3", [5,6,7], [5], color, proj([5,6,7]), 45) + tbl("item3", [0,5,8,9], [0,5], color, proj([0,5,8,9]), 174);
+      fds = '<span class="fd">拆法：把传递依赖的列和中间的决定因素拿出去，原表只留 customer_id 作外键</span>';
+      msg = "最终 4 张表都满足第三范式：每位顾客的信息只存一次（13 行）。用连接可以把它们拼回原来的 174 行，一行不多一行不少（实验 7-2 实测，不一致的行为 0）。";
+    }
+    document.getElementById("fds").innerHTML = fds;
+    document.getElementById("tables").innerHTML = t;
+    document.getElementById("msg").textContent = msg;
+    document.getElementById("prev").disabled = step === 0; document.getElementById("next").disabled = step === 4;
+  }
+  document.getElementById("next").onclick = function () { step = Math.min(4, step + 1); render(); };
+  document.getElementById("prev").onclick = function () { step = Math.max(0, step - 1); render(); };
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

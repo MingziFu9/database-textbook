@@ -52,7 +52,20 @@ nav:
   - "第 12 章 向量数据库原理": chapters/12-vector-db/index.md
   - 交互动画:
     - sims/index.md
-    - "示例动画：点击计数器": sims/example-counter/index.md
+    - "数据库家族": sims/db-family/index.md
+    - "主键与外键": sims/keys-links/index.md
+    - "关系代数五种运算": sims/relational-algebra/index.md
+    - "分组统计与 HAVING": sims/group-having/index.md
+    - "SELECT 的执行顺序": sims/sql-order/index.md
+    - "四种连接对比": sims/join-types/index.md
+    - "E-R 图转换成表": sims/er-to-table/index.md
+    - "从大表到第三范式": sims/normal-forms/index.md
+    - "B+ 树查找": sims/bplus-tree/index.md
+    - "隔离级别与并发问题": sims/isolation-levels/index.md
+    - "SQL 注入演示": sims/sql-injection/index.md
+    - "词语向量空间": sims/vector-space/index.md
+    - "HNSW 分层搜索": sims/hnsw-search/index.md
+    - "RAG 检索流程": sims/rag-flow/index.md
   - 学习图谱: learning-graph/index.md
   - 常见问题: faq/index.md
   - "在线模拟卷": mock-exam.md

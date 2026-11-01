@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>四种连接对比</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .src { display:flex; gap:28px; flex-wrap:wrap; position:relative; }
+  .tname { font-weight:600; font-size:13px; margin:4px 0 2px; }
+  table.t tr.m td { background:#e3f2fd; }
+  table.t tr.keep td { background:#fff3cd; }
+  table.t tr.lost td { color:#bbb; text-decoration:line-through; }
+  table.t td.null { color:#999; font-style:italic; background:#fafafa !important; }
+  .legend span { display:inline-block; font-size:12px; padding:0 6px; margin-right:8px; border-radius:4px; }
+</style>
+</head>
+<body>
+<h1>四种连接对比：哪些行连上、哪些行留下填 NULL、哪些行丢掉</h1>
+<div class="sub">操作提示：切换连接方式，看左右两张小表的行在结果里的去向。数据与实验 5-1 的 joindemo 库相同。</div>
+<div class="row" id="ops"></div>
+<div class="row legend"><span style="background:#e3f2fd">两边对上了</span><span style="background:#fff3cd">没对上，但被保留（另一边填 NULL）</span><span style="color:#bbb;text-decoration:line-through">没对上，被丢掉</span></div>
+<div class="src">
+  <div><div class="tname">左表 customer c</div><table class="t" id="tc"></table></div>
+  <div><div class="tname">右表 orders o</div><table class="t" id="to"></table></div>
+</div>
+<div class="box">
+  <div class="mono" id="sql"></div>
+  <h2 id="rt"></h2>
+  <table class="t" id="res"></table>
+  <div class="msg" id="msg"></div>
+</div>
+<div class="note">说明：结果与在 MySQL 8.4 上运行 labs/ch05/lab5_1_join_types.sql 一致。MySQL 不支持 FULL JOIN，用 LEFT JOIN … UNION … RIGHT JOIN 代替。</div>
+<script>
+(function () {
+  var C = [[1,"张三"],[2,"李四"],[3,"王五"],[4,"赵六"]];
+  var O = [[101,1,"35.00"],[102,1,"12.50"],[103,2,"88.00"],[104,null,"9.90"],[105,9,"20.00"]];
+  var OPS = [["inner","内连接 INNER JOIN"],["left","左连接 LEFT JOIN"],["right","右连接 RIGHT JOIN"],["full","全连接（UNION 代替）"],["cross","忘写连接条件"]];
+  var op = "inner";
+  function nul(v) { return v === null ? '<td class="null">NULL</td>' : "<td>" + v + "</td>"; }
+  function render() {
+    document.getElementById("ops").innerHTML = OPS.map(function (o) { return '<button data-op="' + o[0] + '" class="' + (o[0] === op ? "on" : "") + '">' + o[1] + "</button>"; }).join("");
+    var cMatched = function (c) { return O.some(function (o) { return o[1] === c[0]; }); };
+    var oMatched = function (o) { return C.some(function (c) { return c[0] === o[1]; }); };
+    var keepC = op === "left" || op === "full", keepO = op === "right" || op === "full";
+    function cls(m, keep) { return op === "cross" ? "m" : m ? "m" : keep ? "keep" : "lost"; }
+    document.getElementById("tc").innerHTML = "<tr><th>customer_id</th><th>name</th></tr>" + C.map(function (c) { return '<tr class="' + cls(cMatched(c), keepC) + '"><td>' + c[0] + "</td><td>" + c[1] + "</td></tr>"; }).join("");
+    document.getElementById("to").innerHTML = "<tr><th>order_id</th><th>customer_id</th><th>amount</th></tr>" + O.map(function (o) { return '<tr class="' + cls(oMatched(o), keepO) + '"><td>' + o[0] + "</td>" + nul(o[1]) + "<td>" + o[2] + "</td></tr>"; }).join("");
+    var rows = [];
+    if (op === "cross") { C.forEach(function (c) { O.forEach(function (o) { rows.push(["m", c[0], c[1], o[0], o[2]]); }); }); }
+    else {
+      C.forEach(function (c) { O.forEach(function (o) { if (o[1] === c[0]) rows.push(["m", c[0], c[1], o[0], o[2]]); }); });
+      if (keepC) C.forEach(function (c) { if (!cMatched(c)) rows.push(["keep", c[0], c[1], null, null]); });
+      if (keepO) O.forEach(function (o) { if (!oMatched(o)) rows.push(["keep", null, null, o[0], o[2]]); });
+      rows.sort(function (a, b) { return op === "right" ? a[3] - b[3] : ((a[1] === null ? 99 : a[1]) - (b[1] === null ? 99 : b[1])) || ((a[3] || 0) - (b[3] || 0)); });
+    }
+    var on = " ON o.customer_id = c.customer_id";
+    var sql = { inner: "SELECT c.customer_id, c.name, o.order_id, o.amount FROM customer c INNER JOIN orders o" + on + ";",
+      left: "SELECT c.customer_id, c.name, o.order_id, o.amount FROM customer c LEFT JOIN orders o" + on + ";",
+      right: "SELECT c.customer_id, c.name, o.order_id, o.amount FROM customer c RIGHT JOIN orders o" + on + ";",
+      full: "SELECT … FROM customer c LEFT JOIN orders o" + on + " UNION SELECT … FROM customer c RIGHT JOIN orders o" + on + ";",
+      cross: "SELECT c.customer_id, c.name, o.order_id, o.amount FROM customer c, orders o;   -- 没有 WHERE 连接条件" }[op];
+    var msg = { inner: "内连接只留两边都对得上的 3 行：王五、赵六没有订单，104 是散客、105 的顾客编号 9 不存在，都被丢掉了。",
+      left: "左连接保留左表（顾客）的全部行：王五、赵六没有订单，订单一侧填 NULL。常用来找“从没买过东西的顾客”：再加 WHERE o.order_id IS NULL。",
+      right: "右连接保留右表（订单）的全部行：104、105 找不到顾客，顾客一侧填 NULL。",
+      full: "全连接两边都保留：3 行对上的 + 王五、赵六 + 104、105，共 7 行。",
+      cross: "忘写连接条件，每位顾客和每笔订单两两配对，4 × 5 = 20 行，大部分配对毫无意义。这就是笛卡尔积（5.1.1）。" }[op];
+    document.getElementById("sql").textContent = sql;
+    document.getElementById("rt").textContent = "结果：" + rows.length + " 行";
+    document.getElementById("res").innerHTML = "<tr><th>c.customer_id</th><th>c.name</th><th>o.order_id</th><th>o.amount</th></tr>" +
+      rows.map(function (r) { return '<tr class="' + (op === "cross" ? "" : r[0]) + '">' + nul(r[1]) + nul(r[2]) + nul(r[3]) + nul(r[4]) + "</tr>"; }).join("");
+    document.getElementById("msg").textContent = msg;
+    document.querySelectorAll("[data-op]").forEach(function (b) { b.onclick = function () { op = b.dataset.op; render(); }; });
+  }
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

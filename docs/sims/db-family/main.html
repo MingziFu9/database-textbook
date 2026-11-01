@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数据库家族</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .card { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin:6px 0; }
+  .card .q { font-weight:600; }
+  .card .opts { margin-top:4px; }
+  .card .opts button { margin:2px 2px 0 0; }
+  .card button.right { background:var(--pos); border-color:var(--pos); color:#fff; }
+  .card button.wrong { background:var(--neg); border-color:var(--neg); color:#fff; }
+  .why { font-size:13px; margin-top:4px; }
+  #score { font-weight:bold; color:var(--accent); }
+</style>
+</head>
+<body>
+<h1>数据库家族：给每个业务场景选一种数据库</h1>
+<div class="sub">操作提示：读一读场景，点你认为最合适的数据库类型，马上显示对错和理由。场景由编者根据第 1 章内容构造。</div>
+<div class="row"><span>得分：<span id="score">0 / 8</span></span><button id="reset">重新开始</button><button id="show">全部显示答案</button></div>
+<div id="cards"></div>
+<div class="note">说明：真实系统常常几种数据库一起用（第 1.3.2 节）。这里选的是“最主要”的那一种。</div>
+<script>
+(function () {
+  var TYPES = ["关系型", "键值", "文档", "列族", "图", "向量"];
+  var Q = [
+    ["小店的订单、库存和会员积分，要求每一笔账都准确，下单扣库存不能出错", "关系型", "数据结构固定、表之间有关联，又要求事务保证准确，正是关系型数据库（MySQL、PostgreSQL）的强项。"],
+    ["手机验证码：存 5 分钟后自动失效，每秒要被查询成千上万次", "键值", "一个手机号对应一个验证码，要求极快、能设置过期时间，用 Redis 这类键值数据库最合适。"],
+    ["电商商品详情：手机有屏幕尺寸，衣服有尺码颜色，每类商品的属性都不一样", "文档", "每条记录的字段可以不同，用 JSON 文档存储最自然，如 MongoDB。"],
+    ["一个城市几十万个物联网电表，每 15 分钟上报一次读数，要保存多年", "列族", "数据量极大、写入多，需要分布在成百上千台机器上，适合 HBase 这类列族数据库（大数据课讲）。"],
+    ["银行反欺诈：找出“通过三层转账关系连在一起”的可疑账户", "图", "要查的是“谁和谁有关系、关系有几层”，用点和边存储的图数据库（如 Neo4j）查多层关系最快。"],
+    ["顾客搜“适合老人吃的软一点的早餐”，要找出意思相近的商品", "向量", "要“按意思”而不是“按字面”找，需要把文字变成向量，用向量数据库（第 12 章）。"],
+    ["学校的学生选课和成绩管理，期末要按学生、课程统计", "关系型", "学生、课程、选课三张表通过外键关联，用 SQL 统计非常方便，选关系型数据库。"],
+    ["大模型知识库：把几千页公司制度文档切块，提问时找出最相关的几段", "向量", "这就是检索增强生成（RAG）的检索环节，用向量数据库存储文档片段的嵌入向量。"]
+  ];
+  var answered = {};
+  function render() {
+    document.getElementById("cards").innerHTML = Q.map(function (q, i) {
+      var a = answered[i];
+      return '<div class="card"><div class="q">' + (i + 1) + '. ' + q[0] + '</div><div class="opts">' +
+        TYPES.map(function (t) {
+          var cls = "";
+          if (a) { if (t === q[1]) cls = "right"; else if (t === a) cls = "wrong"; }
+          return '<button data-i="' + i + '" data-t="' + t + '" class="' + cls + '"' + (a ? " disabled" : "") + '>' + t + '</button>';
+        }).join("") + '</div>' +
+        (a ? '<div class="why ' + (a === q[1] ? "ok" : "bad") + '">' + (a === q[1] ? "✓ 答对了。" : "✗ 应选“" + q[1] + "”。") + q[2] + '</div>' : "") + '</div>';
+    }).join("");
+    var right = Object.keys(answered).filter(function (i) { return answered[i] === Q[i][1]; }).length;
+    document.getElementById("score").textContent = right + " / " + Q.length;
+    document.querySelectorAll("[data-i]").forEach(function (b) {
+      b.onclick = function () { answered[b.dataset.i] = b.dataset.t; render(); };
+    });
+  }
+  document.getElementById("reset").onclick = function () { answered = {}; render(); };
+  document.getElementById("show").onclick = function () { Q.forEach(function (q, i) { if (!answered[i]) answered[i] = "（未作答）"; }); render(); };
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

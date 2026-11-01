@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B+ 树查找</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .lvl { display:flex; justify-content:center; gap:6px; margin:6px 0; flex-wrap:nowrap; }
+  .node { border:1.5px solid #90a4ae; border-radius:6px; background:#fff; padding:3px 6px; font-family:Consolas,monospace; font-size:12px; white-space:nowrap; transition:all .2s; }
+  .node span { display:inline-block; padding:0 3px; }
+  .leaf { font-size:11px; padding:3px 3px; min-width:38px; text-align:center; }
+  .node.path { border-color:var(--accent); background:#e3f2fd; box-shadow:0 0 0 2px #bbdefb; }
+  .node.hit { border-color:#2e7d32; background:#e8f5e9; box-shadow:0 0 0 2px #c8e6c9; }
+  .node span.cmp { background:#fff59d; border-radius:3px; }
+  .lvlname { font-size:12px; color:#607d8b; text-align:center; margin-top:8px; }
+  .leafwrap { overflow-x:auto; }
+  .chain { font-size:11px; color:#90a4ae; text-align:center; }
+  .keys span { display:inline-block; font-family:Consolas,monospace; font-size:12px; padding:2px 5px; margin:2px; border-radius:4px; background:#eceff1; }
+  .keys span.hit { background:#2e7d32; color:#fff; }
+  .keys span.inr { background:#a5d6a7; }
+  .cnt { font-size:13px; }
+  input[type=text] { width:70px; }
+</style>
+</head>
+<body>
+<h1>B+ 树查找：从根走到叶子</h1>
+<div class="sub">操作提示：输入一个顾客编号（1～200）点“查找”，或输入一个范围点“范围查找”。这是一棵按 customer_id 建的教学用 B+ 树，每个叶子放 12～13 个编号；真实的 InnoDB 节点能放几百个值，所以树更矮更胖。</div>
+<div class="row">
+  <label>customer_id = <input type="text" id="k" value="137" size="5"></label>
+  <button class="main" id="go">查找</button>
+  <span style="margin-left:12px">范围 <input type="text" id="a" value="45" size="4"> ～ <input type="text" id="b" value="70" size="4"></span>
+  <button id="range">范围查找</button>
+  <button id="reset">重置</button>
+</div>
+<div class="box">
+  <div class="lvlname">第 1 层：根节点</div>
+  <div class="lvl" id="L0"></div>
+  <div class="lvlname">第 2 层：中间节点</div>
+  <div class="lvl" id="L1"></div>
+  <div class="lvlname">第 3 层：叶子（按顺序用链表串起来 →）</div>
+  <div class="leafwrap"><div class="lvl" id="L2"></div></div>
+  <div class="lvlname">当前叶子里的值</div>
+  <div class="keys" id="keys" style="text-align:center;min-height:26px"></div>
+</div>
+<div class="grid2">
+  <div class="box"><div class="msg" id="msg">输入编号后点“查找”。</div></div>
+  <div class="box cnt" id="cnt"></div>
+</div>
+<script src="../common/sim.js"></script>
+<script>
+(function () {
+  var N = 200;
+  var LS = [1,14,26,39,51,64,76,89,101,114,126,139,151,164,176,189];          // 每个叶子的第一个值
+  function leafEnd(i) { return i < LS.length - 1 ? LS[i + 1] - 1 : N; }
+  var MID = [0,1,2,3].map(function (m) { return { seps: [LS[m*4+1], LS[m*4+2], LS[m*4+3]], first: m*4 }; });
+  var ROOT = [51, 101, 151];
+  var timers = [];
+  function clear() { timers.forEach(clearTimeout); timers = []; }
+  function draw(st) {
+    st = st || {};
+    document.getElementById("L0").innerHTML = '<div class="node ' + (st.root ? "path" : "") + '">' +
+      ROOT.map(function (s, i) { return '<span class="' + (st.rootCmp === i ? "cmp" : "") + '">' + s + "</span>"; }).join("│") + "</div>";
+    document.getElementById("L1").innerHTML = MID.map(function (m, i) {
+      return '<div class="node ' + (st.mid === i ? "path" : "") + '">' + m.seps.map(function (s, j) {
+        return '<span class="' + (st.mid === i && st.midCmp === j ? "cmp" : "") + '">' + s + "</span>"; }).join("│") + "</div>"; }).join("");
+    document.getElementById("L2").innerHTML = LS.map(function (s, i) {
+      var c = st.leaves && st.leaves.indexOf(i) >= 0 ? (st.done ? "hit" : "path") : "";
+      return '<div class="node leaf ' + c + '">' + s + "–" + leafEnd(i) + "</div>"; }).join("");
+  }
+  function showKeys(leaves, lo, hi) {
+    var h = "";
+    leaves.forEach(function (i) { for (var v = LS[i]; v <= leafEnd(i); v++) {
+      var c = (v >= lo && v <= hi) ? (lo === hi ? "hit" : "inr") : ""; h += '<span class="' + c + '">' + v + "</span>"; } h += " → "; });
+    document.getElementById("keys").innerHTML = h.replace(/ → $/, "");
+  }
+  function pick(seps, k) { var i = 0; while (i < seps.length && k >= seps[i]) i++; return i; }
+  function msg(t) { document.getElementById("msg").innerHTML = t; }
+  function cnt(nodes, scan) {
+    document.getElementById("cnt").innerHTML = "<b>读了多少？</b><br>B+ 树：读 <b>" + nodes + "</b> 个节点<br>全表扫描：要逐行看 <b>" + scan +
+      "</b> 行<br><span class=\"note\">表有 100 万行时，全表扫描要看 100 万行；B+ 树只多一两层，仍然只读三四个节点。</span>";
+  }
+  function num(id, lo, hi) { var v = parseInt(document.getElementById(id).value, 10); return (isNaN(v) || v < lo || v > hi) ? null : v; }
+  function search(k, then) {
+    var r = pick(ROOT, k), m = MID[r], j = pick(m.seps, k), leaf = m.first + j;
+    var rs = r === 0 ? "k &lt; " + ROOT[0] : (r === 3 ? "k ≥ " + ROOT[2] : ROOT[r-1] + " ≤ k &lt; " + ROOT[r]);
+    var steps = [
+      function () { draw({ root: 1, rootCmp: Math.min(r, 2) }); document.getElementById("keys").innerHTML = "";
+        msg("第 1 步：读根节点，和分界值比较：" + rs + "，走第 " + (r + 1) + " 条路。"); },
+      function () { draw({ root: 1, mid: r, midCmp: Math.min(j, 2) });
+        msg("第 2 步：读第 2 层第 " + (r + 1) + " 个节点，再比较一次，走第 " + (j + 1) + " 条路，到叶子 " + LS[leaf] + "–" + leafEnd(leaf) + "。"); },
+      function () { draw({ root: 1, mid: r, leaves: [leaf] }); then(leaf); }
+    ];
+    steps.forEach(function (f, i) { timers.push(setTimeout(f, i * 700)); });
+  }
+  document.getElementById("go").onclick = function () {
+    clear(); var k = num("k", 1, N);
+    if (k === null) { msg('<span class="bad">请输入 1～200 之间的整数。</span>'); return; }
+    search(k, function (leaf) {
+      draw({ root: 1, mid: pick(ROOT, k), leaves: [leaf], done: 1 }); showKeys([leaf], k, k);
+      msg('<span class="ok">第 3 步：在叶子里找到 ' + k + "，叶子上记着这一行的位置，直接去取。</span>只读了 3 个节点。");
+      cnt(3, N);
+    });
+  };
+  document.getElementById("range").onclick = function () {
+    clear(); var a = num("a", 1, N), b = num("b", 1, N);
+    if (a === null || b === null || a > b) { msg('<span class="bad">请输入 1～200 之间的两个整数，且前一个不大于后一个。</span>'); return; }
+    search(a, function (leaf) {
+      var ls = [leaf]; while (leafEnd(ls[ls.length - 1]) < b) ls.push(ls[ls.length - 1] + 1);
+      ls.forEach(function (_, i) { timers.push(setTimeout(function () {
+        draw({ root: 1, mid: pick(ROOT, a), leaves: ls.slice(0, i + 1), done: i === ls.length - 1 ? 1 : 0 });
+        showKeys(ls.slice(0, i + 1), a, b);
+        if (i === ls.length - 1) {
+          msg('<span class="ok">找到起点 ' + a + " 所在的叶子后，不再回到根，而是顺着叶子的链表往右读，读到超过 " + b + " 为止。</span>一共读了 " + ls.length + " 个叶子，得到 " + (b - a + 1) + " 个值。");
+          cnt(2 + ls.length, N);
+        } else msg("顺着链表读下一个叶子……");
+      }, i * 600)); });
+    });
+  };
+  document.getElementById("reset").onclick = function () { clear(); draw(); document.getElementById("keys").innerHTML = ""; msg("输入编号后点“查找”。"); document.getElementById("cnt").innerHTML = ""; };
+  draw();
+})();
+</script>
+</body>
+</html>

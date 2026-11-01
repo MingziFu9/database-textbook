@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>主键与外键</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .tables { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:680px) { .tables { grid-template-columns:1fr; } }
+  .tname { font-weight:600; font-size:13px; margin-top:6px; }
+  table.t td.pk { font-weight:bold; }
+  table.t tr.sel td { background:#fff3cd; }
+  table.t tr.hit td { background:#e3f2fd; }
+  table.t tr.clickable { cursor:pointer; }
+  table.t tr.clickable:hover td { background:#f1f8e9; }
+  .fk { color:var(--warn); font-weight:600; }
+  .err { font-family:Consolas,monospace; font-size:12px; color:var(--neg); background:#fdecea; border-radius:6px; padding:6px 8px; margin-top:6px; }
+  input[type=number] { width:6em; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+</style>
+</head>
+<body>
+<h1>主键与外键：点一行订单，看它连到哪里</h1>
+<div class="sub">操作提示：点订单表里的一行（黄色），被它的外键引用到的行会变成蓝色。下方可以把这笔订单的 customer_id 改成别的值，看数据库允不允许。数据取自示例库 shop 的最后 6 笔订单。</div>
+
+<div class="tables">
+  <div>
+    <div class="tname">orders 订单表（主键 order_id；<span class="fk">外键</span> customer_id、employee_id）</div>
+    <table class="t" id="orders"></table>
+    <div class="tname">order_item 订单明细（主键 order_id + product_id）</div>
+    <table class="t" id="items"></table>
+  </div>
+  <div>
+    <div class="tname">customer 顾客表（主键 customer_id，节选）</div>
+    <table class="t" id="cust"></table>
+    <div class="tname">employee 员工表（主键 employee_id，节选）</div>
+    <table class="t" id="emp"></table>
+    <div class="tname">product 商品表（主键 product_id，节选）</div>
+    <table class="t" id="prod"></table>
+  </div>
+</div>
+
+<div class="box">
+  <h2>选中订单 <span id="selid"></span> 的信息</h2>
+  <div id="info"></div>
+  <div class="row" style="margin-top:8px">
+    <span>把它的 customer_id 改成</span>
+    <input type="number" id="newc" value="999" aria-label="新的顾客编号">
+    <button class="main" id="upd">执行 UPDATE</button>
+    <button id="setnull">改成 NULL（散客）</button>
+    <button id="del">删除顾客 3（潘梅）</button>
+  </div>
+  <div class="row ex"><span class="lbl">试一试：</span><button data-v="146">改成 146</button><button data-v="999">改成 999</button><button data-v="0">改成 0</button></div>
+  <div id="msg" class="msg"></div>
+</div>
+<div class="note">说明：报错信息是编者在 MySQL 8.4 上实际执行得到的原文。动画只修改页面上的数据，刷新即还原。</div>
+
+<script>
+(function () {
+  var orders = [[2496,137,4,"06-29 18:01","支付宝"],[2497,181,3,"06-29 18:38","微信"],[2498,91,4,"06-30 08:40","微信"],
+                [2499,null,4,"06-30 09:52","支付宝"],[2500,146,4,"06-30 17:12","支付宝"],[2501,3,3,"06-30 20:44","微信"]];
+  var cust = [[3,"潘梅","滨江花园"],[91,"吴芳敏","幸福里"],[137,"林玉静","和平路"],[146,"何伟娜","学府小区"],[181,"谢明静","滨江花园"]];
+  var emp = [[3,"谢洋燕","收银员"],[4,"吴轩建","收银员"]];
+  var items = [[2496,1,2,"39.90"],[2496,13,1,"15.00"],[2496,31,1,"9.90"],[2496,35,1,"4.00"],[2497,1,1,"39.90"],[2497,10,1,"18.80"],[2498,15,1,"99.00"],
+               [2499,3,1,"89.00"],[2499,35,1,"4.00"],[2499,41,2,"19.90"],[2499,47,1,"19.80"],[2500,8,1,"26.90"],[2501,47,1,"19.80"]];
+  var prod = [[1,"东北大米 5kg","39.90"],[3,"花生油 5L","89.00"],[8,"燕麦片 1kg","26.90"],[10,"芝麻糊 600g","18.80"],[13,"鲜肉包 6 个","15.00"],
+              [15,"每日坚果 25g×30","99.00"],[31,"香蕉 1kg","9.90"],[35,"豆腐 400g","4.00"],[41,"火锅底料 200g","19.90"],[47,"五号电池 8 节","19.80"]];
+  var sel = 2499, msg = "";
+  var FK = "a foreign key constraint fails (`shop`.`orders`, CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`))";
+  function fmt(v) { return v === null ? '<i style="color:#999">NULL</i>' : (typeof v === "number" && v % 1 ? v.toFixed(2) : v); }
+  function table(id, head, rows, cls) {
+    document.getElementById(id).innerHTML = "<tr>" + head.map(function (h, i) { return "<th>" + h + "</th>"; }).join("") + "</tr>" +
+      rows.map(function (r) { return '<tr class="' + cls(r) + '"' + (id === "orders" ? ' data-o="' + r[0] + '"' : "") + ">" + r.map(function (v) { return "<td>" + fmt(v) + "</td>"; }).join("") + "</tr>"; }).join("");
+  }
+  function render() {
+    var o = orders.filter(function (r) { return r[0] === sel; })[0];
+    var its = items.filter(function (r) { return r[0] === sel; });
+    var pids = its.map(function (r) { return r[1]; });
+    table("orders", ["order_id", '<span class="fk">customer_id</span>', '<span class="fk">employee_id</span>', "order_time（2026 年）", "pay_method"], orders,
+      function (r) { return "clickable" + (r[0] === sel ? " sel" : ""); });
+    table("items", ["order_id", "product_id", "quantity", "unit_price"], items, function (r) { return r[0] === sel ? "hit" : ""; });
+    table("cust", ["customer_id", "name", "district"], cust, function (r) { return r[0] === o[1] ? "hit" : ""; });
+    table("emp", ["employee_id", "name", "position"], emp, function (r) { return r[0] === o[2] ? "hit" : ""; });
+    table("prod", ["product_id", "name", "price"], prod, function (r) { return pids.indexOf(r[0]) >= 0 ? "hit" : ""; });
+    var c = cust.filter(function (r) { return r[0] === o[1]; })[0], e = emp.filter(function (r) { return r[0] === o[2]; })[0];
+    var total = its.reduce(function (s, r) { return s + r[2] * parseFloat(r[3]); }, 0);
+    document.getElementById("selid").textContent = sel;
+    document.getElementById("info").innerHTML =
+      "顾客：" + (o[1] === null ? "customer_id 为 NULL，是没留信息的散客" : "customer_id = " + o[1] + " → " + (c ? c[1] + "（" + c[2] + "）" : "？")) +
+      "；收银员：employee_id = " + o[2] + " → " + e[1] +
+      "；买了 " + its.length + " 种商品：" + its.map(function (r) { var p = prod.filter(function (x) { return x[0] === r[1]; })[0]; return p[1] + " × " + r[2]; }).join("、") +
+      "，合计 " + total.toFixed(2) + " 元。";
+    document.getElementById("msg").innerHTML = msg;
+    document.querySelectorAll("[data-o]").forEach(function (tr) { tr.onclick = function () { sel = +tr.dataset.o; msg = ""; render(); }; });
+  }
+  function update(v) {
+    var o = orders.filter(function (r) { return r[0] === sel; })[0];
+    var sql = "UPDATE orders SET customer_id = " + (v === null ? "NULL" : v) + " WHERE order_id = " + sel + ";";
+    if (v !== null && !cust.some(function (r) { return r[0] === v; })) {
+      msg = '<div class="mono">' + sql + '</div><div class="err">ERROR 1452 (23000): Cannot add or update a child row: ' + FK + '</div>' +
+        '<div class="bad">顾客表里没有编号 ' + v + ' 的顾客，违反参照完整性，数据库拒绝修改。</div>';
+    } else {
+      o[1] = v;
+      msg = '<div class="mono">' + sql + '</div><div class="ok">Query OK, 1 row affected。' + (v === null ? "外键可以为空，表示“暂时没有对应”。" : "顾客 " + v + " 存在，修改成功，蓝色高亮跟着变了。") + '</div>';
+    }
+    render();
+  }
+  document.getElementById("upd").onclick = function () { update(parseInt(document.getElementById("newc").value, 10)); };
+  document.getElementById("setnull").onclick = function () { update(null); };
+  document.getElementById("del").onclick = function () {
+    var used = orders.some(function (r) { return r[1] === 3; });
+    msg = '<div class="mono">DELETE FROM customer WHERE customer_id = 3;</div>' + (used
+      ? '<div class="err">ERROR 1451 (23000): Cannot delete or update a parent row: ' + FK + '</div><div class="bad">还有订单引用着顾客 3，不能直接删除被参照的行。</div>'
+      : '<div class="ok">现在没有订单引用顾客 3 了。真实的 shop 库里顾客 3 还有别的订单，仍然删不掉。</div>');
+    render();
+  };
+  document.querySelectorAll("[data-v]").forEach(function (b) { b.onclick = function () { document.getElementById("newc").value = b.dataset.v; update(+b.dataset.v); }; });
+  render();
+})();
+</script>
+<script src="../common/sim.js"></script>
+</body>
+</html>

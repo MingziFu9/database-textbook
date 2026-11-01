@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG 检索流程</title>
+<link rel="stylesheet" href="../common/sim.css">
+<style>
+  .stepbar span { font-size:12px; padding:2px 8px; border-radius:10px; background:#eceff1; margin:2px; display:inline-block; }
+  .stepbar span.cur { background:var(--accent); color:#fff; }
+  .doc { font-size:13px; line-height:1.7; background:#fff; border:1px solid #cfd8dc; border-radius:6px; padding:8px 10px; }
+  .chunk { border:1px solid #cfd8dc; border-radius:6px; padding:5px 8px; margin:4px 0; font-size:12.5px; background:#fff; display:flex; gap:8px; align-items:flex-start; }
+  .chunk > span:nth-child(2) { flex:1; }
+  code { font-variant-ligatures:none; }
+  .chunk .id { font-weight:bold; color:#546e7a; min-width:24px; }
+  .chunk .vec { font-family:Consolas,monospace; font-size:11.5px; color:#1565c0; white-space:nowrap; margin-left:auto; }
+  .chunk .sc { font-family:Consolas,monospace; font-weight:bold; min-width:44px; text-align:right; }
+  .chunk.top { border-color:#2e7d32; background:#e8f5e9; }
+  .chunk.dim { opacity:.45; }
+  .prompt { font-family:Consolas,monospace; font-size:12.5px; white-space:pre-wrap; background:#263238; color:#eceff1; padding:10px; border-radius:6px; }
+  .qv { font-family:Consolas,monospace; color:#c62828; font-size:12.5px; }
+  @media (max-width:620px) { .chunk { flex-wrap:wrap; } .chunk .vec { margin-left:0; } }
+</style>
+</head>
+<body>
+<h1>RAG 检索流程：从资料到提示词</h1>
+<div class="sub">操作提示：选一个顾客问题，点“下一步”逐步播放。为了看得懂，每段资料的向量只有 6 维，由编者按内容手工打分，6 个数依次表示：[退换货, 营业时间, 配送, 会员积分, 付款, 食品质量]；真实系统用嵌入模型算出几百维的向量。</div>
+<div class="row" id="qs"><span>顾客问题：</span></div>
+<div class="row stepbar" id="bar"></div>
+<div class="row"><button id="prev">上一步</button><button class="main" id="next">下一步</button></div>
+<div class="box" id="stage"></div>
+<div class="box"><div class="msg" id="msg"></div></div>
+<script src="../common/sim.js"></script>
+<script>
+(function () {
+  var DOC = [
+    ["营业时间", "本店每天 7:00—22:00 营业，春节期间（除夕到初二）9:00—18:00。", [0, 1, 0, 0, 0, 0]],
+    ["送货上门", "小区内购物满 39 元免费送货上门，不满 39 元收配送费 3 元；21:00 以后下单次日上午送达。", [0, 0.2, 1, 0, 0.2, 0]],
+    ["退换规定", "非食品类商品 7 天内凭小票可退换，商品需不影响再次销售。", [1, 0, 0, 0, 0.1, 0]],
+    ["食品退换", "食品拆封后不退换；如发现过期、变质或包装破损，凭小票当天全额退款并赔偿 10 元购物券。", [0.8, 0, 0, 0, 0.1, 0.9]],
+    ["会员积分", "会员每消费 1 元积 1 分，100 分可在结账时抵 1 元；积分有效期到次年 12 月 31 日。", [0, 0, 0, 1, 0.4, 0]],
+    ["会员日", "每月 8 日为会员日，会员购物享 95 折，积分双倍。", [0, 0.3, 0, 0.9, 0.2, 0]],
+    ["付款方式", "支持现金、微信、支付宝和银行卡；会员可用积分抵扣部分金额。", [0, 0, 0, 0.3, 1, 0]],
+    ["生鲜质量", "蔬菜水果每天早上 6:30 到货，鸡蛋、牛奶等按保质期先进先出，临期商品放在特价区。", [0, 0.2, 0, 0, 0, 1]]
+  ];
+  var QS = [["买的牛奶过期了，能退吗？", [0.8, 0, 0, 0, 0, 0.8]], ["晚上几点关门？", [0, 1, 0, 0, 0, 0]],
+            ["买多少能送货上门？", [0, 0, 1, 0, 0.1, 0]], ["积分怎么用？", [0, 0, 0, 1, 0.5, 0]]];
+  var STEPS = ["① 原始资料", "② 切块", "③ 向量化入库", "④ 问题向量化", "⑤ 检索前 3 段", "⑥ 拼成提示词"];
+  var qi = 0, step = 0;
+  function cos(a, b) { var d = 0, x = 0, y = 0; for (var i = 0; i < a.length; i++) { d += a[i]*b[i]; x += a[i]*a[i]; y += b[i]*b[i]; } return d / Math.sqrt(x * y); }
+  function vs(v) { return "[" + v.map(function (x) { return x.toFixed(1); }).join(", ") + "]"; }
+  function ranked() { var q = QS[qi][1]; return DOC.map(function (d, i) { return { i: i, s: cos(q, d[2]) }; }).sort(function (a, b) { return b.s - a.s; }); }
+  function render() {
+    document.getElementById("qs").innerHTML = "<span>顾客问题：</span>" + QS.map(function (q, i) { return '<button data-i="' + i + '" class="' + (i === qi ? "on" : "") + '">' + q[0] + "</button>"; }).join(" ");
+    Array.prototype.forEach.call(document.querySelectorAll("#qs button"), function (b) { b.onclick = function () { qi = +b.dataset.i; render(); }; });
+    document.getElementById("bar").innerHTML = STEPS.map(function (s, i) { return '<span class="' + (i === step ? "cur" : "") + '">' + s + "</span>"; }).join("");
+    document.getElementById("prev").disabled = step === 0; document.getElementById("next").disabled = step === STEPS.length - 1;
+    var h = "", m = "", R = ranked(), top = R.slice(0, 3).map(function (r) { return r.i; }), sc = {};
+    R.forEach(function (r) { sc[r.i] = r.s; });
+    var qline = '<div class="qv">问题：“' + QS[qi][0] + "”　→　问题向量 " + vs(QS[qi][1]) + "</div>";
+    if (step === 0) {
+      h = '<div class="doc"><b>《社区小店顾客须知》</b><br>' + DOC.map(function (d) { return d[1]; }).join("") + "</div>";
+      m = "准备阶段：小店的资料是一整篇文字。整篇的意思太杂，直接变成一个向量就说不清它讲什么，所以先要切块。";
+    } else if (step <= 2) {
+      h = DOC.map(function (d, i) { return '<div class="chunk"><span class="id">#' + (i + 1) + "</span><span><b>" + d[0] + "</b>：" + d[1] + "</span>" + (step === 2 ? '<span class="vec">' + vs(d[2]) + "</span>" : "") + "</div>"; }).join("");
+      m = step === 1 ? "按内容切成 8 段，每段只讲一件事。真实系统常按几百字一段切，相邻两段还会重叠一点，免得一句话被切断。" :
+        "每段用嵌入模型变成一个向量，和原文、出处一起存进向量数据库（第 12 章实验里的 Chroma 或 pgvector 表）。这一步只在资料更新时做一次。";
+    } else if (step === 3) {
+      h = qline + DOC.map(function (d, i) { return '<div class="chunk dim"><span class="id">#' + (i + 1) + "</span><span><b>" + d[0] + '</b></span><span class="vec">' + vs(d[2]) + "</span></div>"; }).join("");
+      m = "回答阶段：顾客提问后，用<b>同一个</b>嵌入模型把问题也变成向量。换了模型，向量就不能比了。";
+    } else if (step === 4) {
+      h = qline + R.map(function (r) { var d = DOC[r.i], t = top.indexOf(r.i) >= 0;
+        return '<div class="chunk ' + (t ? "top" : "dim") + '"><span class="id">#' + (r.i + 1) + "</span><span><b>" + d[0] + "</b>：" + d[1] + '</span><span class="sc">' + r.s.toFixed(2) + "</span></div>"; }).join("");
+      m = "在向量库里算问题和每段的余弦相似度，按从大到小排，取前 3 段（绿色）。这就是 pgvector 里的 <code>ORDER BY embedding &lt;=&gt; 问题向量 LIMIT 3</code>。";
+    } else {
+      var p = "请根据下面的资料回答顾客的问题。资料里没有的内容，就回答“不清楚，请咨询店员”。\n\n【资料】\n" +
+        top.map(function (i, k) { return (k + 1) + ". " + DOC[i][1]; }).join("\n") + "\n\n【顾客问题】\n" + QS[qi][0];
+      h = '<div class="prompt">' + p.replace(/</g, "&lt;") + "</div>";
+      m = "把检索到的 3 段资料和问题拼成一段提示词，交给大模型生成回答（第 ⑦ 步，属于大模型应用开发，本课程不演示）。资料来自小店自己的库，大模型就不会凭空编规定。";
+    }
+    document.getElementById("stage").innerHTML = h;
+    document.getElementById("msg").innerHTML = m;
+  }
+  document.getElementById("next").onclick = function () { step++; render(); };
+  document.getElementById("prev").onclick = function () { step--; render(); };
+  render();
+})();
+</script>
+</body>
+</html>
