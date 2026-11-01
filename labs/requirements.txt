@@ -1,8 +1,15 @@
-# 《课程名称》实验环境（写明教材编写时实测通过的版本，Python 3.11）
+# 《数据库基础与应用》Python 实验环境（编者实测：Python 3.13）
 # 安装：pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-# 只列学生实验真正用到的库，版本号必须是编者实际运行过的；需要 GPU 的库单独写在下面并注明
-pandas
-numpy
-matplotlib
-scikit-learn
-jupyter
+# 第 1 章
+pandas==3.1.0
+# 第 11 章
+PyMySQL==1.2.3
+cryptography==50.0.2
+SQLAlchemy==2.1.6
+matplotlib==3.11.2
+streamlit==1.66.1
+# 第 12 章
+numpy==2.5.4
+chromadb==1.5.9
+# 第 12 章实验 12-2 第二部分（bge-small-zh 语义搜索，待实测）另需：
+# sentence-transformers

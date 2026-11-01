@@ -453,7 +453,7 @@ docker exec -i shop-mysql mysql -uroot -pshop123 --default-character-set=utf8mb4
 | 现象 | 原因 | 解决办法 |
 |---|---|---|
 | 连接时提示 `Public Key Retrieval is not allowed` | MySQL 8 的默认认证方式需要客户端取公钥 | 在连接设置的“驱动属性”里把 `allowPublicKeyRetrieval` 改成 `true` |
-| 提示 `Access denied for user 'root'@'localhost'` | 密码输错 | 重新输入；忘了密码见附录 B“重置 root 密码” |
+| 提示 `Access denied for user 'root'@'localhost'` | 密码输错 | 重新输入；忘了密码见[附录 B.5](../../appendix/b-environment.md#b5-root) |
 | 提示 `Communications link failure` | MySQL 服务没启动，或端口不是 3306 | 在 Windows“服务”里启动 MySQL84；核对端口 |
 | DBeaver 下载驱动失败 | 网络慢或被拦截 | 在“窗口 → 首选项 → 连接 → 驱动 → Maven”里换成国内镜像，或请老师拷贝驱动文件 |
 | 导入后中文显示成问号 | 脚本没按 UTF-8 读入 | 用 DBeaver 打开脚本（默认 UTF-8）执行；命令行加 `--default-character-set=utf8mb4` |

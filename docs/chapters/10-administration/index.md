@@ -65,7 +65,7 @@ description: 在 Windows 上安装配置 MySQL 8.4 和 PostgreSQL 17，用 Docke
 4. 在 Configurator 里依次设置：端口（默认 **3306**）、root 口令、是否作为 Windows 服务运行（服务名默认 MySQL84，勾选开机自动启动）；
 5. 最后一步 Configurator 会启动服务。在“开始”菜单里打开 MySQL 8.4 Command Line Client，输入 root 口令，看到 `mysql>` 提示符就说明装好了。
 
-一步一图的说明见[附录 B](../../appendix/b-environment.md)。装不上的同学，可以用 10.3 节的 Docker 环境，或者继续用网页里的“试一试”。
+安装、连接和常见报错的汇总见[附录 B](../../appendix/b-environment.md)。装不上的同学，可以用 10.3 节的 Docker 环境，或者继续用网页里的“试一试”。
 
 !!! warning "root 口令一定要记住"
     root 是数据库的“超级管理员”，口令忘了要按官方手册的步骤重置，很麻烦。建议把口令写在实验报告的第一页。
