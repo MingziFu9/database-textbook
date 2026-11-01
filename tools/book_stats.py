@@ -38,7 +38,9 @@ def wan(n):
 
 def main():
     glossary = g.parse()
-    rows = [chapter_stats(p, int(p.parent.name[:2]), glossary) for p in sorted((DOCS / "chapters").glob("*/index.md"))]
+    # 还在编写、没有“课后练习”的章不计入统计
+    chapters = [p for p in sorted((DOCS / "chapters").glob("*/index.md")) if "## 课后练习" in p.read_text(encoding="utf-8")]
+    rows = [chapter_stats(p, int(p.parent.name[:2]), glossary) for p in chapters]
     total = {k: sum(r[k] for r in rows) for k in ("words", "labs", "exercises", "quiz", "terms", "refs", "sims")}
     graph = (DOCS / "learning-graph/data.js").read_text(encoding="utf-8")
     concepts = graph.count('"id":')

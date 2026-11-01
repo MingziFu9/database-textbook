@@ -7,38 +7,49 @@
 # 也从这里读取课程名、学时等信息
 # ============================================================
 
-title: 课程名称                      # 书名，例如：机器学习
-description: 面向成人教育人工智能技术应用专业（专科）的《课程名称》教材，每章配套动手实验
+title: 数据库基础与应用                # 书名
+description: 面向成人教育人工智能技术应用专业（专科）的《数据库基础与应用》教材，零基础友好，MySQL 为主线，12 章 36 个动手实验，网页里可直接运行 SQL
 audience: 成人教育（继续教育）人工智能技术应用专业专科学生，多为在职学习者
 github_user: MingziFu9                # 网址 https://<github_user>.github.io/<repo>/
-repo: ai-textbook-template            # GitHub 仓库名（用模板新建后改成本课的，如 ml-textbook）
+repo: database-textbook            # GitHub 仓库名（用模板新建后改成本课的，如 ml-textbook）
 
-credits: 4                            # 学分
-hours: {theory: 60, lab: 12}          # 学时：理论 + 实验
-semester: 3                           # 开课学期
+credits: 5                            # 学分
+hours: {theory: 72, lab: 18}          # 学时：理论 + 实验
+semester: 2                           # 开课学期
 exam: 闭卷                            # 期末考核方式
 labs_per_chapter: 3                   # 每章实验数；0 表示没有实验
 lab_section: 本章实验                 # 实验部分的二级标题；导论用“在线体验”
 lab_word: 实验                        # 每个实验的三级标题前缀（### 实验 N-M）；导论用“体验”
 frontier_title: 前沿视窗              # 每章“前沿”小节的名称，导论用“身边的 AI”
-certificates:                         # 对应的职业证书；没有证书的课程写成 certificates: []，导航里就不显示“证书考点对照”页
-  - name: 证书名称（级别）
-    issuer: 发证机构，标准或考纲名称（年份）
+certificates: []                      # 人才培养方案未列对应证书；考点对照用 NCRE 二级 MySQL，放在“考点对照”页
 
 # 章节：dir 是 docs/chapters/ 下的文件夹名（两位章号开头），short 用于学习图谱等窄处
 # theory / lab 是本章学时；labs 可单独覆盖本章实验数；offline 可指定本章线下学时（不写则按 online_ratio 分）
 chapters:
-  - {dir: 01-sample, title: 示例章, short: 示例章, theory: 5, lab: 1}
+  - {dir: 01-overview, title: "数据库概述", short: "概述", theory: 5, lab: 1, offline: 1}
+  - {dir: 02-relational-model, title: "关系模型：用表格描述世界", short: "关系模型", theory: 5, lab: 1, offline: 1}
+  - {dir: 03-sql-ddl-dml, title: "SQL 入门：建库、建表与增删改", short: "建表与增删改", theory: 7, lab: 2, offline: 2}
+  - {dir: 04-single-table-query, title: "单表查询与分组统计", short: "单表查询", theory: 7, lab: 2, offline: 2}
+  - {dir: 05-multi-table-query, title: "多表查询：连接与子查询", short: "多表查询", theory: 7, lab: 2, offline: 2}
+  - {dir: 06-er-design, title: "数据库设计：从需求到 E-R 图", short: "E-R 设计", theory: 6, lab: 1, offline: 2}
+  - {dir: 07-normalization, title: "规范化与范式", short: "范式", theory: 7, lab: 1, offline: 2}
+  - {dir: 08-view-index, title: "视图、索引与查询优化", short: "视图与索引", theory: 7, lab: 2, offline: 2}
+  - {dir: 09-transaction, title: "事务、存储过程与触发器", short: "事务与存储过程", theory: 6, lab: 2, offline: 1}
+  - {dir: 10-administration, title: "数据库管理：安装配置、权限、备份与安全", short: "数据库管理", theory: 5, lab: 1, offline: 1}
+  - {dir: 11-python-app, title: "用 Python 开发数据库应用", short: "Python 应用开发", theory: 5, lab: 2, offline: 1}
+  - {dir: 12-vector-db, title: "向量数据库原理", short: "向量数据库", theory: 5, lab: 1, offline: 1}
 
 # 其他页面：追加在导航“常见问题”之后，如 extra_pages: [{file: mock-exam.md, title: 在线模拟卷}]
-extra_pages: []
+extra_pages: [{file: mock-exam.md, title: 在线模拟卷}]
 
 # 附录：docs/appendix/ 下的文件，按顺序自动编号为 A、B、C……（术语表固定为 glossary.md）
 appendices:
-  - {file: a-python.md, title: Python 速查}
-  - {file: b-libraries.md, title: 工具库速查}
-  - {file: c-environment.md, title: 实验环境与数据说明}
+  - {file: a-sql.md, title: MySQL 常用 SQL 速查}
+  - {file: b-environment.md, title: 实验环境安装与常见报错}
+  - {file: c-shop-db.md, title: 小店示例数据库说明}
   - {file: glossary.md, title: 术语表}
+  - {file: e-templates.md, title: 设计文档模板}
+  - {file: f-mock-exam.md, title: 期末闭卷模拟卷}
 
 # 教案默认设置（每章可在 lesson-plans/chNN.yml 里覆盖）
 lesson_plan:

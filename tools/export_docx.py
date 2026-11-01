@@ -86,8 +86,8 @@ def convert(md, page="index.md"):
     md = re.sub(r"<span id=\"[^\"]*\"></span>", "", md)
     md = re.sub(r"^</?div[^>]*>\s*$", "", md, flags=re.M)
     # 术语链接、站内链接只留文字
-    md = re.sub(r"\[([^\]]+)\]\((?!https?:)[^)]*\)", r"\1", md)
-    md = re.sub(r"\{ *[.#:a-z][^}]*\}", "", md)
+    md = re.sub(r'\[([^\]]+)\]\((?!https?:)[^)\s]*(?: "[^"]*")?\)', r"\1", md)   # 链接标题（术语提示）里可能有括号
+    md = re.sub(r"\{ (?:[.#]|[a-z_]+=)[^}]*\}", "", md)                    # 只去掉 { .term }、{ #121 }、{ target=_blank } 这类属性，保留公式和代码里的花括号
     # 提示框：!!! / ??? 类型 "标题" + 缩进正文 → 引用块
     lines, out, i = md.split("\n"), [], 0
     while i < len(lines):
@@ -105,6 +105,24 @@ def convert(md, page="index.md"):
     return "\n".join(out).replace("{WIDTH=", "{width=")   # 图片宽度用大写写入，躲过上面去掉属性的替换
 
 
+def set_cjk_font(docx, font="Microsoft YaHei"):
+    """pandoc 默认把中文也交给西文主题字体，部分软件（如 LibreOffice）会显示成方框；改为指定中文字体"""
+    import shutil
+    import zipfile
+    tmp = docx.with_suffix(".tmp.docx")
+    with zipfile.ZipFile(docx) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == "word/styles.xml":
+                xml = data.decode("utf-8")
+                xml = re.sub(r'w:eastAsiaTheme="[^"]*"', f'w:eastAsia="{font}"', xml)
+                xml = xml.replace('<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" />',
+                                  f'<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="{font}" />')
+                data = xml.encode("utf-8")
+            zout.writestr(item, data)
+    shutil.move(tmp, docx)
+
+
 def main():
     OUT.mkdir(exist_ok=True)
     args = [a for a in sys.argv[1:] if a != "--pdf"]
@@ -119,7 +137,8 @@ def main():
     dst = OUT / f"{name}.docx"
     subprocess.run(["pandoc", str(tmp), "-f", "markdown+tex_math_single_backslash", "-o", str(dst),
                     "--toc", "--toc-depth=2", "-M", "toc-title=目录", "--resource-path", str(DOCS)], check=True)
-    print(f"已导出 {dst.relative_to(ROOT)}（{len(pages)} 页）")
+    set_cjk_font(dst)
+    print(f"已导出 {dst.relative_to(ROOT)}（{len(pages)} 个页面）")
     if "--pdf" in sys.argv:
         subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", str(OUT), str(dst)], check=True)
 

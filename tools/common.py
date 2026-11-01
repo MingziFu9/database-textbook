@@ -96,7 +96,7 @@ def headings(text, level):
     for line in text.split("\n"):
         if line.startswith("```"):
             fence = not fence
-        m = None if fence else re.match(r"^(#{1,6}) (.*)$", line)
+        m = None if fence else re.match(r"^(#{1,6}) (.*?)(?:\s*\{ *#[^}]*\})?$", line)   # 去掉显式锚点 { #116 }
         if m and len(m.group(1)) <= level:
             if cur is not None:
                 out.append((cur, "\n".join(buf)))

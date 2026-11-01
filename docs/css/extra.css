@@ -73,3 +73,19 @@ a.term[data-def]:hover::after {
   background-color: #8e24aa; -webkit-mask-image: var(--md-admonition-icon--cert); mask-image: var(--md-admonition-icon--cert);
 }
 
+
+/* ---------- 网页“试一试”SQL 框 ---------- */
+.sql-try { border: 1px solid var(--md-default-fg-color--lightest); border-left: 4px solid #2e7d32; border-radius: 4px; padding: .6rem .8rem; margin: 1em 0; }
+.sql-try::before { content: "试一试"; display: block; font-weight: 700; color: #2e7d32; font-size: .75rem; margin-bottom: .3rem; }
+.sql-editor { width: 100%; box-sizing: border-box; font-family: var(--md-code-font-family, monospace); font-size: .78rem; line-height: 1.5; padding: .5rem; border: 1px solid var(--md-default-fg-color--lighter); border-radius: 3px; background: var(--md-code-bg-color); color: var(--md-code-fg-color); resize: vertical; }
+.sql-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .4rem 0; }
+.sql-bar button { font-size: .72rem; padding: .25rem .8rem; border-radius: 3px; border: 1px solid #2e7d32; cursor: pointer; background: #fff; color: #2e7d32; }
+.sql-bar .sql-run { background: #2e7d32; color: #fff; }
+.sql-tip { font-size: .65rem; color: var(--md-default-fg-color--light); }
+.sql-table-wrap { overflow-x: auto; max-height: 22rem; overflow-y: auto; }
+.sql-table { font-size: .7rem; border-collapse: collapse; }
+.sql-table th, .sql-table td { border: 1px solid var(--md-default-fg-color--lightest); padding: .15rem .5rem; white-space: nowrap; }
+.sql-table th { background: var(--md-default-fg-color--lightest); }
+.sql-null { color: #999; font-style: italic; }
+.sql-count, .sql-ok { font-size: .68rem; color: var(--md-default-fg-color--light); margin: .2rem 0; }
+.sql-err { font-size: .72rem; color: #c62828; background: #ffebee; padding: .3rem .5rem; border-radius: 3px; }

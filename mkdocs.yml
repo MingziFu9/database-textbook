@@ -1,8 +1,8 @@
 # 站点名、描述、网址和 nav 由 python tools/course.py sync 根据 course.yml 生成，请改 course.yml，不要手改这几项
-site_name: 课程名称
-site_description: 面向成人教育人工智能技术应用专业（专科）的《课程名称》教材，每章配套动手实验
-site_url: https://mingzifu9.github.io/ai-textbook-template/
-repo_url: https://github.com/MingziFu9/ai-textbook-template
+site_name: 数据库基础与应用
+site_description: 面向成人教育人工智能技术应用专业（专科）的《数据库基础与应用》教材，零基础友好，MySQL 为主线，12 章 36 个动手实验，网页里可直接运行 SQL
+site_url: https://mingzifu9.github.io/database-textbook/
+repo_url: https://github.com/MingziFu9/database-textbook
 docs_dir: docs
 theme:
   name: material
@@ -33,19 +33,33 @@ extra_css:
 extra_javascript:
   - javascripts/mathjax.js
   - javascripts/book.js
+  - javascripts/tryit.js
   - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
 nav:
   - 首页: index.md
   - 课程描述: course-description.md
-  - "第 1 章 示例章": chapters/01-sample/index.md
+  - "第 1 章 数据库概述": chapters/01-overview/index.md
+  - "第 2 章 关系模型：用表格描述世界": chapters/02-relational-model/index.md
+  - "第 3 章 SQL 入门：建库、建表与增删改": chapters/03-sql-ddl-dml/index.md
+  - "第 4 章 单表查询与分组统计": chapters/04-single-table-query/index.md
+  - "第 5 章 多表查询：连接与子查询": chapters/05-multi-table-query/index.md
+  - "第 6 章 数据库设计：从需求到 E-R 图": chapters/06-er-design/index.md
+  - "第 7 章 规范化与范式": chapters/07-normalization/index.md
+  - "第 8 章 视图、索引与查询优化": chapters/08-view-index/index.md
+  - "第 9 章 事务、存储过程与触发器": chapters/09-transaction/index.md
+  - "第 10 章 数据库管理：安装配置、权限、备份与安全": chapters/10-administration/index.md
+  - "第 11 章 用 Python 开发数据库应用": chapters/11-python-app/index.md
+  - "第 12 章 向量数据库原理": chapters/12-vector-db/index.md
   - 交互动画:
     - sims/index.md
     - "示例动画：点击计数器": sims/example-counter/index.md
   - 学习图谱: learning-graph/index.md
   - 常见问题: faq/index.md
-  - 证书考点对照: certificate.md
+  - "在线模拟卷": mock-exam.md
   - 附录:
-    - "附录 A Python 速查": appendix/a-python.md
-    - "附录 B 工具库速查": appendix/b-libraries.md
-    - "附录 C 实验环境与数据说明": appendix/c-environment.md
+    - "附录 A MySQL 常用 SQL 速查": appendix/a-sql.md
+    - "附录 B 实验环境安装与常见报错": appendix/b-environment.md
+    - "附录 C 小店示例数据库说明": appendix/c-shop-db.md
     - "附录 D 术语表": appendix/glossary.md
+    - "附录 E 设计文档模板": appendix/e-templates.md
+    - "附录 F 期末闭卷模拟卷": appendix/f-mock-exam.md

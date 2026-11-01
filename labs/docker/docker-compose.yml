@@ -1,0 +1,28 @@
+# 《数据库基础与应用》一键实验环境（附录 B）
+# 启动：在本文件所在目录运行  docker compose up -d
+# MySQL：localhost:3306，root / shop123；PostgreSQL（带 pgvector）：localhost:5432，postgres / shop123
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: shop-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: shop123
+      TZ: Asia/Shanghai
+    command: ["--character-set-server=utf8mb4", "--local-infile=1"]
+    ports: ["3306:3306"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../data:/data:ro
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: shop-postgres
+    environment:
+      POSTGRES_PASSWORD: shop123
+      TZ: Asia/Shanghai
+    ports: ["5432:5432"]
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ../data:/data:ro
+volumes:
+  mysql-data:
+  pg-data:
