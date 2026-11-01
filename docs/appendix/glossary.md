@@ -168,6 +168,19 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-用户账号"></span>用户账号 | User Account | 登录数据库的身份，由用户名、允许登录的主机和口令组成；MySQL 中写作 '用户名'@'主机' | CREATE USER 'clerk'@'%' IDENTIFIED BY 'Clerk#2026'; |
+| <span id="g-权限"></span>权限 | Privilege | 允许某个账号对某个数据库对象执行某种操作的许可，例如对 product 表执行 SELECT；用 GRANT 授予、REVOKE 收回 | GRANT SELECT ON shop.product TO r_clerk; |
+| <span id="g-角色"></span>角色 | Role | 一组权限的集合，可以像账号一样被授权，再整体授予多个账号，便于按岗位统一管理权限 | CREATE ROLE r_clerk; GRANT r_clerk TO 'clerk'@'%'; |
+| <span id="g-最小权限原则"></span>最小权限原则 | Principle of Least Privilege | 只授予账号完成其工作所必需的最少权限，不多给，用完及时收回 | 收银员只能查商品、录订单，不能改价格、看手机号 |
+| <span id="g-备份"></span>备份 | Backup | 把数据库中的数据和结构复制一份保存到别处，以便数据损坏或丢失时用来恢复 | 每天打烊后用 mysqldump 导出 shop 库 |
+| <span id="g-恢复"></span>恢复 | Recovery | 数据库损坏或数据丢失后，利用备份文件和日志把数据还原到某个正确状态的过程 | mysql -u root -p < shop_full.sql |
+| <span id="g-逻辑备份"></span>逻辑备份 | Logical Backup | 把数据库对象和数据导出为 SQL 语句等可读格式的备份方式，如 mysqldump、pg_dump；与直接复制数据文件的物理备份相对 | mysqldump 导出的 273 KB SQL 文件 |
+| <span id="g-增量备份"></span>增量备份 | Incremental Backup | 只备份上一次备份之后发生变化的数据，通常与全量备份配合使用；MySQL 中常用二进制日志实现 | 全量备份之后的新订单只记录在 binlog 里 |
+| <span id="g-二进制日志"></span>二进制日志 | Binary Log | MySQL 把所有修改数据的操作按时间顺序记录下来的日志文件（binlog），可用于时间点恢复和主从复制 | SHOW BINARY LOGS; 列出 binlog.000001 等文件 |
+| <span id="g-时间点恢复"></span>时间点恢复 | Point-in-Time Recovery | 先用全量备份还原，再重放二进制日志中备份之后到故障之前的操作，把数据库恢复到故障前某一时刻的状态 | 导入全量备份后，用 mysqlbinlog 重放到 DROP DATABASE 之前，找回订单 2502 |
+| <span id="g-SQL-注入"></span>SQL 注入 | SQL Injection | 攻击者在输入中夹带 SQL 片段，利用程序拼接字符串的漏洞改变原来 SQL 语句的含义，从而窃取或破坏数据 | 输入 ' OR '1'='1 让 WHERE 条件恒为真，查出全部 200 位顾客 |
+| <span id="g-数据加密"></span>数据加密 | Data Encryption | 用密钥把数据变成别人看不懂的密文保存或传输，只有持有密钥的人才能还原；口令则用不可还原的哈希值保存 | HEX(AES_ENCRYPT('13800001234', @k)) |
+| <span id="g-数据脱敏"></span>数据脱敏 | Data Masking | 把敏感数据中的部分内容替换或遮盖后再展示或提供，如手机号显示为 100****1779，使数据可用但不暴露个人信息 | CONCAT(LEFT(phone, 3), '****', RIGHT(phone, 4)) 得到 100****1779 |
 
 ## 第 11 章 用 Python 开发数据库应用
 
