@@ -198,3 +198,16 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-嵌入"></span>嵌入 | Embedding | 把文字、图片等内容转换成一个固定长度的数值向量，使意思相近的内容得到相近的向量；这个过程和得到的向量都叫嵌入（Embedding） | “燕麦片 1kg：无蔗糖纯燕麦片……”经 bge-small-zh-v1.5 变成 512 维向量 |
+| <span id="g-嵌入模型"></span>嵌入模型 | Embedding Model | 把文字、图片等内容转换为嵌入向量的人工智能模型，例如中文文本常用的 bge-small-zh-v1.5，输出 512 维向量 | bge-small-zh-v1.5（北京智源人工智能研究院，MIT 许可） |
+| <span id="g-余弦相似度"></span>余弦相似度 | Cosine Similarity | 两个向量内积除以两者长度的乘积，衡量方向是否一致，取值 −1 到 1，越接近 1 越相似；文本嵌入最常用 | 问题 [0.9, 0.9, 0, 0] 与燕麦片 [0.9, 0.8, 0, 0] 的余弦相似度约 0.9983 |
+| <span id="g-欧氏距离"></span>欧氏距离 | Euclidean Distance | 两个向量对应分量差的平方和再开方，即空间中两点的直线距离，越小越相似 | 问题与燕麦片的欧氏距离 = √0.01 = 0.1 |
+| <span id="g-内积"></span>内积 | Inner Product | 两个向量对应分量相乘再相加的结果；向量长度都为 1 时，内积等于余弦相似度 | [0.9, 0.9, 0, 0]·[0.9, 0.8, 0, 0] = 1.53 |
+| <span id="g-最近邻搜索"></span>最近邻搜索 | K-Nearest Neighbor Search | 给定一个查询向量，在向量集合中找出与它最相似（距离最近）的 K 个向量，也叫 K 近邻搜索（KNN） | 按相似度排序后取前 3 名：小米、燕麦片、芝麻糊 |
+| <span id="g-近似最近邻"></span>近似最近邻 | Approximate Nearest Neighbor | Approximate Nearest Neighbor（ANN），不逐个比较全部向量，而是借助索引只比较一部分，以少量准确性为代价换取查询速度的大幅提升 | 10 万条向量，HNSW 20 次查询 12.9 毫秒，召回率 85% |
+| <span id="g-召回率"></span>召回率 | Recall | 近似搜索返回的结果中，有多少比例确实属于真正的前 K 个最近邻；召回率越高越准确 | 返回的 10 个结果中有 9 个属于真正的前 10 名，召回率 90% |
+| <span id="g-HNSW"></span>HNSW | Hierarchical Navigable Small World | 分层可导航小世界图（Hierarchical Navigable Small World），把向量连成多层的“邻居网”，查询时从稀疏的上层大步跳到目标附近，再到下层细找，是最常用的向量索引 | CREATE INDEX ON product_vec USING hnsw (embedding vector_cosine_ops); |
+| <span id="g-元数据过滤"></span>元数据过滤 | Metadata Filtering | 在向量相似度查询的同时，按价格、类别、日期等普通字段筛选结果，如“价格不超过 16 元的最相似商品” | col.query(…, where={"price": {"$lte": 16}}) |
+| <span id="g-pgvector"></span>pgvector | pgvector | PostgreSQL 的开源扩展，增加 vector 数据类型、<=> 等距离运算符和 HNSW、IVFFlat 向量索引，使关系数据库能直接存储和检索向量 | ORDER BY embedding <=> '[0.9, 0.9, 0, 0]' LIMIT 3 |
+| <span id="g-检索增强生成"></span>检索增强生成 | Retrieval-Augmented Generation (RAG) | Retrieval-Augmented Generation（RAG），先从知识库中检索与问题相关的资料，再把资料和问题一起交给大模型生成回答，使回答有据可查、减少编造 | 小店客服：先检索退货规定相关段落，再交给大模型回答 |
+| <span id="g-混合检索"></span>混合检索 | Hybrid Search | 同时使用关键词搜索和向量搜索，再把两路结果合并排序，兼顾字面精确匹配和语义相似 | 商品编号用关键词搜索，“适合老人的早餐”用向量搜索，结果合并 |
