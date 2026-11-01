@@ -186,6 +186,13 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-数据库驱动"></span>数据库驱动 | Database Driver | 让程序能够与某种数据库通信的软件库，例如 Python 访问 MySQL 用 PyMySQL，访问 PostgreSQL 用 psycopg2 | pip install pymysql 后 import pymysql |
+| <span id="g-数据库连接"></span>数据库连接 | Database Connection | 程序与数据库服务器之间建立的一条通信通道，建立时要提供主机、端口、用户名、口令和数据库名；事务也在连接上提交或回滚 | conn = pymysql.connect(host="127.0.0.1", user="shopapp", …) |
+| <span id="g-游标"></span>游标 | Cursor | 在数据库连接上执行 SQL 并逐行读取结果的对象，常用方法有 execute、fetchone、fetchall | cur = conn.cursor(); cur.execute(sql); cur.fetchall() |
+| <span id="g-参数化查询"></span>参数化查询 | Parameterized Query | SQL 语句中用占位符代替具体值，执行时把值作为参数单独传给数据库驱动，值只会被当作数据，不会被当作 SQL 代码执行；是防止 SQL 注入的首要方法 | cur.execute("SELECT … WHERE phone = %s", (text,))，注入串查到 0 行 |
+| <span id="g-窗口函数"></span>窗口函数 | Window Function | 对与当前行相关的一组行（窗口）进行计算、但不把多行合并成一行的函数，写作 函数() OVER (PARTITION BY … ORDER BY …)，常用于排名、累计、同比环比 | RANK() OVER (PARTITION BY category_id ORDER BY price DESC) |
+| <span id="g-数据挖掘"></span>数据挖掘 | Data Mining | 从大量数据中发现有用的规律和知识的过程，如找出畅销商品、销售趋势、经常一起购买的商品等 | 找出每个类别销售额前 2 名的商品、月度环比 |
+| <span id="g-ORM"></span>ORM | Object-Relational Mapping | 对象关系映射（Object-Relational Mapping），把数据库的表映射成程序里的类、行映射成对象，让程序员用操作对象的方式读写数据库，由框架自动生成 SQL | SQLAlchemy、Django ORM |
 
 ## 第 12 章 向量数据库原理
 
