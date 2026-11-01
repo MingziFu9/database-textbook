@@ -88,6 +88,17 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-笛卡尔积"></span>笛卡尔积 | Cartesian Product | 把第一张表的每一行和第二张表的每一行两两配对得到的结果，行数是两表行数的乘积 | 48 种商品 × 8 个类别 = 384 行 |
+| <span id="g-表别名"></span>表别名 | Table Alias | 在 FROM 中给表起的简短名字，用来区分不同表里的同名列，如 product p | FROM product p JOIN category c |
+| <span id="g-内连接"></span>内连接 | Inner Join | 只保留两张表中满足连接条件、能对得上的行的连接，用 INNER JOIN … ON 写 | product p JOIN category c ON c.category_id = p.category_id |
+| <span id="g-外连接"></span>外连接 | Outer Join | 除了对得上的行，还保留某一张表中对不上的行、另一边填 NULL 的连接，分为左外连接、右外连接和全外连接 | customer c LEFT JOIN orders o ON o.customer_id = c.customer_id |
+| <span id="g-自连接"></span>自连接 | Self Join | 一张表和它自己连接，要给同一张表起两个不同的别名，常用于员工和上级这类自己参照自己的情况 | employee e LEFT JOIN employee m ON m.employee_id = e.manager_id |
+| <span id="g-子查询"></span>子查询 | Subquery | 嵌在另一条 SQL 语句里、用括号括起来的 SELECT，它的结果给外面的语句使用 | WHERE price > (SELECT AVG(price) FROM product) |
+| <span id="g-EXISTS"></span>EXISTS | EXISTS | 判断子查询是否至少返回一行的运算符，返回了就为真，常和相关子查询一起用来查“有没有” | WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id) |
+| <span id="g-相关子查询"></span>相关子查询 | Correlated Subquery | 用到了主查询中的列、要对主查询的每一行分别执行一次的子查询 | 比本类别平均价贵的商品 |
+| <span id="g-派生表"></span>派生表 | Derived Table | 写在 FROM 中、把子查询的结果当作一张临时表来用的写法，必须起别名 | FROM (SELECT …) AS t |
+| <span id="g-UNION"></span>UNION | UNION | 把两个 SELECT 的结果上下合并成一个结果的集合操作，UNION 去重，UNION ALL 不去重 | SELECT … UNION ALL SELECT … |
+| <span id="g-公用表表达式"></span>公用表表达式 | Common Table Expression (CTE) | 用 WITH 名字 AS (子查询) 在语句开头先定义好的临时结果，后面可以像表一样按名字使用，简称 CTE | WITH order_amount AS (SELECT …) SELECT … FROM order_amount |
 
 ## 第 6 章 数据库设计：从需求到 E-R 图
 
