@@ -149,6 +149,20 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-事务"></span>事务 | Transaction | 由一组 SQL 操作组成的不可分割的工作单位，其中的操作要么全部成功并保存，要么全部撤销 | 下单时“插订单 + 插明细 + 扣库存”放在 START TRANSACTION … COMMIT 之间 |
+| <span id="g-提交"></span>提交 | Commit | 结束事务并把事务中的全部修改永久保存到数据库，用 COMMIT 语句 | COMMIT; 之后其他会话才能看到修改 |
+| <span id="g-回滚"></span>回滚 | Rollback | 撤销事务中尚未提交的全部修改，使数据回到事务开始前的状态，用 ROLLBACK 语句 | 插入明细报错 1452 后执行 ROLLBACK，薯片库存回到 8 |
+| <span id="g-ACID"></span>ACID | ACID | 事务的四个特性：原子性 Atomicity、一致性 Consistency、隔离性 Isolation、持久性 Durability | 转账要么两边都改、要么都不改（原子性） |
+| <span id="g-并发"></span>并发 | Concurrency | 多个用户或程序在同一时间访问、修改同一个数据库 | 两个收银台同时修改同一件商品的价格 |
+| <span id="g-脏读"></span>脏读 | Dirty Read | 一个事务读到了另一个事务修改了但还没有提交的数据，而那个修改后来可能被撤销 | 会话 B 读到会话 A 未提交的价格 9.90，A 回滚后价格又是 8.90 |
+| <span id="g-不可重复读"></span>不可重复读 | Non-repeatable Read | 在同一个事务中两次读取同一行数据，因为中间有其他事务修改并提交，结果不一样 | 同一事务内两次读价格，先 8.90 后 9.90 |
+| <span id="g-幻读"></span>幻读 | Phantom Read | 在同一个事务中两次按相同条件查询，因为中间有其他事务插入或删除了行，返回的行数不一样 | 同一事务内两次统计订单数，第二次多出别人新插入的一行 |
+| <span id="g-隔离级别"></span>隔离级别 | Isolation Level | 规定一个事务能看到其他并发事务修改的程度，从低到高为读未提交、读已提交、可重复读、可串行化 | SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED; |
+| <span id="g-锁"></span>锁 | Lock | 数据库为了防止多个事务同时修改同一数据而施加的控制，一个事务持有某行的锁时，其他事务要修改这行必须等待 | 会话 A 改着一行没提交，会话 B 改同一行要等，超时报 1205 |
+| <span id="g-存储过程"></span>存储过程 | Stored Procedure | 保存在数据库中、有名字的一组 SQL 语句，可以带参数，用 CALL 调用 | CALL sp_month_summary('2026-05'); 返回 141 单、9936.40 元 |
+| <span id="g-存储函数"></span>存储函数 | Stored Function | 保存在数据库中、用 RETURN 返回一个值的程序，可以像 ROUND、CONCAT 等内置函数一样写在 SQL 表达式里 | SELECT fn_order_amount(2499); 返回 152.60 |
+| <span id="g-触发器"></span>触发器 | Trigger | 绑定在某张表上、在插入、修改或删除行时由数据库自动执行的一段程序 | trg_item_stock：插入订单明细后自动扣库存 |
+| <span id="g-事件"></span>事件 | Event | MySQL 中按设定的时间或周期自动执行的任务，由事件调度器负责运行 | ev_month_summary：每月 1 日凌晨自动生成上月汇总 |
 
 ## 第 10 章 数据库管理：安装配置、权限、备份与安全
 
