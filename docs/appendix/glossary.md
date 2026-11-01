@@ -120,6 +120,15 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-数据冗余"></span>数据冗余 | Data Redundancy | 同一条信息在数据库中被重复存储多次，会浪费空间并引起插入、删除、更新异常 | 杨萱子的电话在大表里存了 38 遍 |
+| <span id="g-异常"></span>异常 | Anomaly | 设计不好的表在插入、删除、修改数据时出现的问题，分为插入异常、删除异常和更新异常 | 插入异常、删除异常、更新异常 |
+| <span id="g-函数依赖"></span>函数依赖 | Functional Dependency | 如果属性 A 的值确定了，属性 B 的值就唯一确定，称 B 函数依赖于 A，记作 A → B | customer_id → customer_name |
+| <span id="g-部分依赖"></span>部分依赖 | Partial Dependency | 非主属性只依赖于复合码中的一部分属性，而不需要整个码就能确定，是不满足第二范式的原因 | (order_id, product_id) 为码时，product_id → product_name |
+| <span id="g-传递依赖"></span>传递依赖 | Transitive Dependency | A → B、B → C，且 B 不能决定 A，则 C 通过 B 间接依赖于 A，是不满足第三范式的原因 | order_id → customer_id → customer_phone |
+| <span id="g-范式"></span>范式 | Normal Form | 关系模式满足的规范化程度的级别，常用的有第一、第二、第三范式和 BC 范式，级别越高冗余越少 | 1NF、2NF、3NF、BCNF |
+| <span id="g-规范化"></span>规范化 | Normalization | 通过拆分关系模式消除不合适的函数依赖、减少冗余、使其达到更高范式的过程 | 把订单大表拆成顾客、订单、明细、商品 4 张表 |
+| <span id="g-BC-范式"></span>BC 范式 | Boyce-Codd Normal Form (BCNF) | 每一个函数依赖的决定因素都包含候选码的关系模式，是比第三范式更严格的范式，简称 BCNF | sct(学生, 课程, 教师) 中 教师 → 课程 违反 BCNF |
+| <span id="g-反规范化"></span>反规范化 | Denormalization | 为了提高查询速度或简化查询，有意保留冗余数据、降低范式级别的设计做法，需要额外措施保证数据一致 | 订单表存订单总金额 |
 
 ## 第 8 章 视图、索引与查询优化
 
