@@ -1,123 +1,84 @@
-"""由概念表（concepts-draft.csv）和附录 D 术语表生成学习图谱 data.js。
+"""由附录 D 术语表和下面的先修关系表生成学习图谱 data.js。
 
 用法：python tools/build_graph.py && python tools/graph_text.py
-节点 = 术语表全部术语；先修关系取自概念表（概念名按 ALIAS 对应到术语名，
-不在术语表里的概念把它的先修关系传下去），术语表里有、概念表里没有的术语用 EXTRA 补先修。
+节点 = 术语表全部术语（定义、所在章取自术语表）；先修关系 PRE 由编者按各章内容整理，每个概念只写最直接的 1～3 个先修。
 """
-import csv
-import json
-import sys
+import json, re
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-import glossary_links as g  # noqa: E402
-
 ROOT = Path(__file__).resolve().parent.parent
-LG = ROOT / "docs/learning-graph"
-CATS = [("FOUND", "基础概念"), ("PD", "Python 与 pandas"), ("COLL", "数据采集"), ("CLEAN", "数据清洗"),
-        ("LABEL", "数据标注"), ("STAT", "统计分析"), ("VIS", "可视化与报告"), ("MODEL", "建模应用"),
-        ("REC", "推荐系统"), ("OPS", "系统运维"), ("ETH", "伦理与合规")]
-ALIAS = {"用户-物品矩阵": ["用户—物品矩阵"], "PSI": ["群体稳定性指标"], "数据脱敏": ["脱敏"], "最小必要原则": ["最小必要"],
-         "API": ["应用程序接口"], "SQL 查询": ["SQL"], "关系数据库": ["数据库"], "JSON 展平": ["展平"],
-         "训练集与测试集": ["训练集", "测试集"], "精确率与召回率": ["精确率", "召回率"], "金标准数据": ["金标准"],
-         "抽样检验": ["抽检"], "验收标准": ["验收"], "标签噪声": ["噪声标签"], "总体与样本": ["总体", "样本"],
-         "抽样方法": ["随机抽样"], "交互式图表": ["交互图表"], "召回与排序": ["召回", "排序"], "推荐评估": ["离线评估"],
-         "系统运维": ["智能系统运维"], "错误案例分析": ["错误分析"], "清洗流水线": ["数据处理流水线"],
-         "scikit-learn 流水线": ["流水线"], "网页采集": ["网络爬虫"], "文本分类标注": ["文本分类"],
-         "图像分割标注": ["图像分割"], "指标体系": ["指标"], "回归模型": ["回归"], "分类模型": ["分类", "逻辑回归"],
-         "柱状图": ["条形图"]}
-EXTRA = {  # 术语: (先修, 类别)
-    "变量": ([], "PD"), "列表": (["变量"], "PD"), "字典": (["变量"], "PD"), "函数": (["变量"], "PD"),
-    "库": (["函数"], "PD"), "DataFrame": (["库", "结构化数据"], "PD"), "日期时间类型": (["数据类型"], "PD"),
-    "UTF-8": (["文件编码"], "COLL"), "GBK": (["文件编码"], "COLL"), "乱码": (["UTF-8", "GBK"], "COLL"),
-    "展平": (["JSON"], "COLL"), "数据库": (["数据源"], "COLL"), "SQL": (["数据库"], "COLL"), "SQLite": (["数据库"], "COLL"),
-    "应用程序接口": (["数据源"], "COLL"), "HTTP 请求": (["应用程序接口"], "COLL"), "重试": (["HTTP 请求", "状态码"], "COLL"),
-    "网络爬虫": (["HTTP 请求"], "COLL"), "robots 协议": (["网络爬虫"], "COLL"), "采集方案": (["数据采集", "数据源"], "COLL"),
-    "数据质量维度": (["数据质量"], "CLEAN"), "中位数": (["缺失值"], "CLEAN"), "按组填充": (["缺失值", "分组聚合"], "CLEAN"),
-    "脱敏": (["正则表达式"], "CLEAN"), "无效评论": (["业务规则校验"], "CLEAN"), "数据处理流水线": (["函数", "清洗规范"], "CLEAN"),
-    "监督学习": (["训练数据"], "LABEL"), "标签": (["监督学习"], "LABEL"), "数据标注": (["标签"], "LABEL"),
-    "偏好数据": (["数据标注"], "LABEL"), "文本分类": (["数据标注"], "LABEL"), "图像分割": (["目标框标注"], "LABEL"),
-    "试标": (["标注规范"], "LABEL"), "金标准": (["标注规范"], "LABEL"), "Fleiss' Kappa": (["Kappa 系数"], "LABEL"),
-    "验收": (["标注准确率"], "LABEL"), "抽检": (["分层抽样"], "LABEL"), "抽检方案": (["抽检", "分层抽样"], "LABEL"),
-    "错误分析": (["抽检"], "LABEL"), "噪声标签": (["标注准确率"], "LABEL"),
-    "众数": (["集中趋势"], "STAT"), "标准差": (["离散程度"], "STAT"), "相关矩阵": (["相关系数"], "STAT"),
-    "总体": (["描述统计"], "STAT"), "样本": (["总体"], "STAT"), "随机抽样": (["样本"], "STAT"), "指标": (["描述统计"], "STAT"),
-    "条形图": (["数据可视化"], "VIS"), "堆叠柱状图": (["条形图"], "VIS"), "子图": (["Matplotlib"], "VIS"),
-    "数据透视图": (["透视表", "数据可视化"], "VIS"), "商业智能": (["数据看板"], "VIS"), "截断纵轴": (["误导性图表"], "VIS"),
-    "双纵轴": (["误导性图表"], "VIS"), "交互图表": (["数据可视化"], "VIS"), "指标卡": (["数据看板", "指标"], "VIS"),
-    "机器学习": (["训练数据", "监督学习"], "MODEL"), "模型": (["机器学习"], "MODEL"), "回归": (["监督学习", "模型"], "MODEL"),
-    "分类": (["监督学习", "模型"], "MODEL"), "训练集": (["模型"], "MODEL"), "测试集": (["训练集"], "MODEL"),
-    "过拟合": (["训练集", "测试集"], "MODEL"), "scikit-learn": (["库", "机器学习"], "MODEL"),
-    "流水线": (["scikit-learn"], "MODEL"), "标准化": (["特征", "标准差"], "MODEL"),
-    "平均绝对误差": (["回归"], "MODEL"), "决定系数": (["回归"], "MODEL"), "残差": (["回归"], "MODEL"),
-    "TF-IDF": (["特征", "文本分类"], "MODEL"), "逻辑回归": (["分类"], "MODEL"), "精确率": (["混淆矩阵"], "MODEL"),
-    "召回率": (["混淆矩阵"], "MODEL"), "K 均值": (["聚类"], "MODEL"), "提示词": (["预训练模型"], "MODEL"),
-    "用户—物品矩阵": (["推荐系统", "透视表"], "REC"), "稀疏": (["用户—物品矩阵"], "REC"),
-    "杰卡德相似度": (["基于内容的推荐"], "REC"), "召回": (["推荐系统"], "REC"), "排序": (["召回"], "REC"),
-    "离线评估": (["推荐系统", "测试集"], "REC"),
-    "智能系统运维": (["在线服务"], "OPS"), "灰度发布": (["在线服务"], "OPS"), "延迟": (["监控指标"], "OPS"),
-    "P95 延迟": (["延迟", "分位数"], "OPS"), "错误率": (["监控指标"], "OPS"), "群体稳定性指标": (["数据漂移", "分布"], "OPS"),
-    "归因": (["坏案例"], "OPS"),
-    "最小必要": (["个人信息"], "ETH"), "掩码": (["脱敏"], "ETH"), "哈希": (["脱敏"], "ETH"), "泛化": (["脱敏"], "ETH"),
-    "扰动": (["脱敏"], "ETH"), "准标识符": (["个人信息"], "ETH"), "去标识化": (["掩码", "哈希", "准标识符"], "ETH"),
-    "隐私计算": (["去标识化"], "ETH")}
-EXTRA_EDGES = [("掩码", "匿名化"), ("泛化", "匿名化"), ("随机抽样", "样本偏差"), ("结构化数据", "数据字典"), ("虚拟环境", "Jupyter"), ("Jupyter", "变量")]
+CATS = ["基本概念", "SQL 语言", "数据库设计", "索引与事务", "管理与安全", "应用开发", "向量数据库"]
+CHCAT = {1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 3, 9: 3, 10: 4, 11: 5, 12: 6}
+PRE = {
+    "数据库管理系统": "数据库", "数据库系统": "数据库 数据库管理系统", "模式": "数据库", "外模式": "模式", "内模式": "模式",
+    "数据独立性": "外模式 内模式", "关系型数据库": "数据库管理系统", "SQL": "关系型数据库", "MySQL": "关系型数据库",
+    "PostgreSQL": "关系型数据库", "SQLite": "关系型数据库", "NoSQL": "关系型数据库", "向量数据库": "NoSQL",
+    "Text-to-SQL": "SQL",
+    "数据模型": "数据库", "关系模型": "数据模型", "关系": "关系模型", "元组": "关系", "属性": "关系", "域": "属性",
+    "关系模式": "关系 属性", "超键": "属性 元组", "候选键": "超键", "主键": "候选键", "外键": "主键",
+    "完整性约束": "关系模型", "实体完整性": "主键 完整性约束", "参照完整性": "外键 完整性约束", "用户定义完整性": "完整性约束",
+    "关系代数": "关系", "选择": "关系代数", "投影": "关系代数", "连接": "关系代数 外键",
+    "声明式语言": "SQL", "DDL": "SQL", "DML": "SQL", "DQL": "SQL", "DCL": "SQL", "字符集": "DDL", "数据类型": "DDL 域",
+    "非空约束": "完整性约束 DDL", "唯一约束": "候选键 DDL", "默认值": "DDL", "检查约束": "用户定义完整性 DDL",
+    "查询": "DQL", "别名": "查询", "DISTINCT": "查询", "通配符": "查询", "分页": "查询", "CASE 表达式": "查询",
+    "聚合函数": "查询", "分组": "聚合函数", "HAVING": "分组", "执行顺序": "HAVING 别名",
+    "笛卡尔积": "连接", "表别名": "别名", "内连接": "连接 表别名", "外连接": "内连接", "自连接": "内连接 表别名",
+    "子查询": "查询", "EXISTS": "子查询", "相关子查询": "子查询", "派生表": "子查询 表别名", "UNION": "查询",
+    "公用表表达式": "派生表",
+    "数据库设计": "关系模型", "需求分析": "数据库设计", "数据字典": "需求分析", "概念设计": "需求分析",
+    "实体": "概念设计", "联系": "实体", "多对多联系": "联系", "E-R 图": "实体 联系", "逻辑设计": "E-R 图 关系模式",
+    "中间表": "多对多联系 外键", "物理设计": "逻辑设计 数据类型",
+    "数据冗余": "关系模式", "异常": "数据冗余", "函数依赖": "属性", "部分依赖": "函数依赖 候选键", "传递依赖": "函数依赖",
+    "范式": "函数依赖 异常", "规范化": "范式 部分依赖 传递依赖", "BC 范式": "规范化", "反规范化": "规范化",
+    "视图": "查询", "全表扫描": "查询", "索引": "全表扫描", "B+ 树": "索引", "聚簇索引": "B+ 树 主键",
+    "二级索引": "聚簇索引", "组合索引": "索引", "最左前缀": "组合索引", "执行计划": "索引", "慢查询日志": "执行计划",
+    "事务": "DML", "提交": "事务", "回滚": "事务", "ACID": "提交 回滚", "并发": "事务", "脏读": "并发 提交",
+    "不可重复读": "并发", "幻读": "并发", "隔离级别": "脏读 不可重复读 幻读", "锁": "并发",
+    "存储过程": "DML", "存储函数": "存储过程", "触发器": "存储过程", "事件": "存储过程",
+    "用户账号": "DCL", "权限": "用户账号", "角色": "权限", "最小权限原则": "权限", "备份": "数据库",
+    "恢复": "备份", "逻辑备份": "备份", "增量备份": "备份", "二进制日志": "增量备份", "时间点恢复": "二进制日志 恢复",
+    "SQL 注入": "SQL", "数据加密": "用户账号", "数据脱敏": "视图 权限",
+    "数据库驱动": "MySQL", "数据库连接": "数据库驱动", "游标": "数据库连接", "参数化查询": "游标 SQL 注入",
+    "窗口函数": "分组", "数据挖掘": "窗口函数", "ORM": "数据库连接",
+    "嵌入": "向量数据库", "嵌入模型": "嵌入", "余弦相似度": "嵌入", "欧氏距离": "嵌入", "内积": "余弦相似度",
+    "最近邻搜索": "余弦相似度 欧氏距离", "近似最近邻": "最近邻搜索 索引", "召回率": "近似最近邻", "HNSW": "近似最近邻",
+    "元数据过滤": "最近邻搜索", "pgvector": "PostgreSQL HNSW", "检索增强生成": "嵌入模型 最近邻搜索",
+    "混合检索": "检索增强生成 通配符",
+}
+
+
+def terms():
+    ch, out = 0, []
+    for line in (ROOT / "docs/appendix/glossary.md").read_text(encoding="utf-8").splitlines():
+        m = re.match(r"## 第 (\d+) 章", line)
+        if m:
+            ch = int(m.group(1)); continue
+        m = re.match(r'\| <span id="(g-[^"]+)"></span>([^|]+)\| ([^|]*)\| ([^|]*)\|', line)
+        if m:
+            out.append({"id": m.group(2).strip(), "ch": ch, "cat": CHCAT[ch], "a": m.group(1), "d": m.group(4).strip()})
+    return out
 
 
 def main():
-    G = g.parse()
-    terms = {t: (ch, a, d) for ch, lst in G.items() for t, a, d in lst}
-    rows = list(csv.DictReader(open(LG / "concepts-draft.csv", encoding="utf-8")))
-    byid = {r["ConceptID"]: r for r in rows}
-    code = [c for c, _ in CATS]
-
-    def resolve(cid, seen=()):
-        r = byid[cid]
-        name = r["ConceptLabel"]
-        if name in terms:
-            return [name]
-        if name in ALIAS:
-            return ALIAS[name]
-        out = []                                      # 不在术语表里：把它的先修传下去
-        for d in filter(None, r["Dependencies"].split("|")):
-            if d not in seen:
-                out += resolve(d, seen + (cid,))
-        return out
-
-    cat, edges = {}, []
-    for r in rows:
-        for t in resolve(r["ConceptID"]) if (r["ConceptLabel"] in terms or r["ConceptLabel"] in ALIAS) else []:
-            cat.setdefault(t, r["TaxonomyID"])
-            for d in filter(None, r["Dependencies"].split("|")):
-                for p in resolve(d):
-                    edges.append((p, t))
-    for t, (pre, c) in EXTRA.items():
-        cat[t] = c
-        edges += [(p, t) for p in pre]
-    edges += EXTRA_EDGES
-    # 去掉自环、重复、指向更早章节的边（后续概念不能出现在先修概念之前的章）
-    seen, E = set(), []
-    for a, b in edges:
-        if a == b or (a, b) in seen or a not in terms or b not in terms:
-            continue
-        if terms[a][0] > terms[b][0]:
-            continue
-        seen.add((a, b)); E.append([a, b])
-    nodes = []
-    for ch, lst in sorted(G.items()):
-        for t, a, d in lst:
-            nodes.append({"id": t, "ch": ch, "cat": code.index(cat.get(t, "FOUND")), "a": a, "d": d})
-    old = (LG / "data.js").read_text(encoding="utf-8")
-    head = old[:old.index("var NODES")]
-    head = head.replace(head[head.index("var CATS"):head.index(";", head.index("var CATS")) + 1],
-                        "var CATS = " + json.dumps([n for _, n in CATS], ensure_ascii=False) + ";")
-    body = "var NODES = [\n" + ",\n".join("  " + json.dumps(n, ensure_ascii=False) for n in nodes) + "\n];\n"
-    body += "var EDGES = " + json.dumps(E, ensure_ascii=False) + ";\n"
-    (LG / "data.js").write_text(head + body, encoding="utf-8")
-    nocat = [t for t in terms if t not in cat]
-    print(f"节点 {len(nodes)}，先修关系 {len(E)}；没有分类的术语（按基础概念）：{nocat}")
-    orphan = [n["id"] for n in nodes if not any(n["id"] in e for e in E)]
-    print("孤立节点：", orphan)
+    T = terms(); names = {t["id"] for t in T}
+    E = []
+    for b, pre in PRE.items():
+        assert b in names, b
+        toks, i = pre.split(), 0
+        while i < len(toks):          # 术语名本身可能带空格（如“E-R 图”），先试两个词连起来
+            a = toks[i] + " " + toks[i + 1] if i + 1 < len(toks) and toks[i] + " " + toks[i + 1] in names else toks[i]
+            i += 2 if " " in a else 1
+            assert a in names, (a, b)
+            E.append([a, b])
+    old = (ROOT / "docs/learning-graph/data.js").read_text(encoding="utf-8")
+    keep = "\n".join(l for l in old.splitlines() if l.startswith("var CHAPTERS") or l.startswith("var CHDIRS"))
+    js = ("// 学习图谱数据：由 tools/build_graph.py 根据附录 D 术语表和先修关系生成，请勿手改\n"
+          "// 改完后运行 python tools/graph_text.py，检查数据并更新 index.md 里的文字版\n"
+          f"var CATS = {json.dumps(CATS, ensure_ascii=False)};\n{keep}\nvar NODES = [\n" +
+          ",\n".join("  " + json.dumps(t, ensure_ascii=False) for t in T) + "\n];\nvar EDGES = " +
+          json.dumps(E, ensure_ascii=False) + ";\n")
+    (ROOT / "docs/learning-graph/data.js").write_text(js, encoding="utf-8")
+    print(f"{len(T)} 个概念，{len(E)} 条先修关系")
 
 
 main()

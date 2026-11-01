@@ -40,7 +40,7 @@ chapters:
   - {dir: 12-vector-db, title: "向量数据库原理", short: "向量数据库", theory: 5, lab: 1, offline: 1}
 
 # 其他页面：追加在导航“常见问题”之后，如 extra_pages: [{file: mock-exam.md, title: 在线模拟卷}]
-extra_pages: [{file: mock-exam.md, title: 在线模拟卷}]
+extra_pages: []
 
 # 附录：docs/appendix/ 下的文件，按顺序自动编号为 A、B、C……（术语表固定为 glossary.md）
 appendices:

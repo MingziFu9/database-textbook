@@ -68,7 +68,6 @@ nav:
     - "RAG 检索流程": sims/rag-flow/index.md
   - 学习图谱: learning-graph/index.md
   - 常见问题: faq/index.md
-  - "在线模拟卷": mock-exam.md
   - 附录:
     - "附录 A MySQL 常用 SQL 速查": appendix/a-sql.md
     - "附录 B 实验环境安装与常见报错": appendix/b-environment.md

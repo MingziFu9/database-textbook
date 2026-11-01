@@ -1,73 +1,82 @@
-# 人工智能技术应用专业网络教材模板
+# 数据库基础与应用（网络教材）
 
-这是人工智能技术应用专业（成人大专）系列网络教材的公共模板，从《自然语言处理导论》（https://mingzifu9.github.io/nlp-textbook/ ）提炼而来。每门课从这个模板新建一个仓库，网页样式、在线答题、交互动画框架、学习图谱和维护脚本都已经配好，只需要写内容。
+面向成人教育人工智能技术应用专业（专科）的《数据库基础与应用》网络教材，课程代码 2619，5 学分 90 学时（线上理论 54 + 线上实验 18 + 线下理论 18），第 2 学期，期末闭卷。
 
-## 模板里有什么
+网页版：<https://mingzifu9.github.io/database-textbook/>
+
+## 内容
+
+跟着“社区小店”从一张 Excel 表格起步，一章往前走一步，主线用 MySQL 8.4 + DBeaver：
+
+| 章 | 标题 |
+|---|---|
+| 1 | 数据库概述 |
+| 2 | 关系模型：用表格描述世界 |
+| 3 | SQL 入门：建库、建表与增删改 |
+| 4 | 单表查询与分组统计 |
+| 5 | 多表查询：连接与子查询 |
+| 6 | 数据库设计：从需求到 E-R 图 |
+| 7 | 规范化与范式 |
+| 8 | 视图、索引与查询优化 |
+| 9 | 事务、存储过程与触发器 |
+| 10 | 数据库管理：安装配置、权限、备份与安全（对照 PostgreSQL） |
+| 11 | 用 Python 开发数据库应用 |
+| 12 | 向量数据库原理（Chroma、pgvector、RAG 检索） |
+
+每章含学习目标、情景导入、正文（第 1～5 章等配有可在网页上运行 SQL 的“试一试”框）、前沿视窗、3 个实验（2 个基础 ★、1 个拓展 ☆）、小结、23 道课后练习（单选、多选、判断可在线作答）和参考文献。另有 14 个交互动画、附录 A～F（SQL 速查、实验环境与报错速查、示例库说明、术语表、设计文档模板、两套闭卷模拟卷）、常见问题、学习图谱和全国计算机等级考试二级 MySQL 考点对照。
+
+## 目录结构
 
 | 路径 | 内容 |
 |---|---|
-| `course.yml` | **课程配置**：书名、学分学时、章节、附录、证书。改完运行 `python tools/course.py sync`，导航、首页、章节骨架等自动更新 |
-| `编写规范.md` | **动笔前先读**：一章的结构、篇幅、实验、题型、文献、动画、术语表和配套资源的统一要求 |
-| `系列公共术语表.md` | 七门课共用的 91 个术语，统一译名和定义 |
-| `docs/chapters/01-sample/` | 示例章，演示每一种元素的写法；写第一章时整章替换 |
-| `docs/sims/` | 交互动画，`common/` 是公共样式和脚本，`example-counter/` 是示例 |
-| `docs/learning-graph/` | 学习图谱（概念和先修关系写在 `data.js`） |
-| `docs/certificate.md` | 证书考点对照页，没有对应证书的课程从 nav 里删掉 |
-| `docs/appendix/` | 附录 A Python 速查、B 工具库速查、C 实验环境与数据说明、D 术语表 |
-| `labs/` | 实验代码（按章分目录）、数据和 `requirements.txt` |
-| `slides/` | 每章课件底稿 `chNN.md`，写法见 `slides/README.md` |
-| `lesson-plans/` | 每章教案底稿 `chNN.yml`，写法见 `lesson-plans/README.md` |
-| `tools/` | 维护脚本，见下文 |
-| `.github/workflows/pages.yml` | 推送到 `main` 后自动发布到 GitHub Pages |
-| `.github/workflows/exports.yml` | 手动运行（或推送 `v1.0` 这样的标签），在 GitHub 上生成全部课件、教案和 Word/PDF 版供下载 |
-
-## 用模板新建一门课
-
-1. 在 GitHub 上打开本仓库，点 **Use this template → Create a new repository**，仓库名用课程的英文短名，例如 `ml-textbook`。
-2. 新仓库的 **Settings → Pages → Source** 选 **GitHub Actions**。
-3. 按大纲填写 `course.yml`（书名、仓库名、学分学时、各章目录名和标题、证书），运行 `python tools/course.py sync`：`mkdocs.yml` 的站点名和导航、首页课程信息和目录、术语表各章小节、学习图谱章节列表都会更新，还没有的章节按统一体例生成骨架。以后改章名、加章节、加动画，都是改完再 sync 一次。
-4. 手动修改 `docs/index.md` 的简介、`docs/course-description.md`、`docs/certificate.md`；本 README 改写成本课的说明。写完第 1 章后删掉 `01-sample`和 `docs/sims/example-counter/` 里的示例内容。课件和教案底稿用 `make_slides.py draft N`、`make_lesson_plan.py draft N` 生成，格式示范见模板包的 `示例输出/`。
-5. 推送到 `main`，几分钟后网页出现在 `https://<用户名>.github.io/<仓库名>/`。
-
-没有实验的课（如导论）：`course.yml` 里把 `lab_section` 改成“在线体验”、`lab_word` 改成“体验”、`frontier_title` 改成“身边的 AI”，章节骨架、首页目录和统计会跟着用这些叫法。
-
-## 维护脚本
-
-```bash
-python tools/glossary_links.py anchors     # 给术语表每个术语加锚点
-python tools/glossary_links.py link 03     # 第 3 章正文中的术语改成悬停可见定义的链接
-python tools/glossary_links.py concepts 03 # 生成第 3 章的“本章概念清单”
-python tools/graph_text.py                 # 检查学习图谱并生成文字版
-python tools/book_stats.py                 # 更新首页“全书概览”统计表
-python tools/course.py sync                # 按 course.yml 更新导航、首页、章节骨架等
-python tools/course.py new-sim 名称 3 "标题" # 新建第 3 章的交互动画骨架
-python tools/export_docx.py --pdf          # 导出 Word 版和 PDF 版到 build/（需要 pandoc 和 LibreOffice）
-```
-
-## 课件、教案和 Word/PDF 版
-
-```bash
-pip install -r requirements-tools.txt      # 第一次：Python 库
-npm install && npx playwright install chromium   # 第一次：渲染配图用的 Node 库和浏览器
-npm run figures                            # 把 Mermaid 图和交互动画渲染成图片（课件、Word 版要用）
-
-python tools/make_slides.py draft 3        # 从第 3 章正文生成课件底稿 slides/ch03.md，精简后再 build
-python tools/make_slides.py build 3        # → build/课件/第03章 章名.pptx（all 表示全部章节）
-python tools/make_lesson_plan.py draft 3   # 生成教案底稿 lesson-plans/ch03.yml，补写“【待填】”后再 build
-python tools/make_lesson_plan.py build 3   # → build/教案/第03章 章名 教案.docx
-python tools/export_docx.py --pdf          # → build/书名.docx 和 .pdf，动画换成截图和二维码
-```
-
-本机不想装这些工具时，在 GitHub 仓库的 **Actions → 导出课件、教案和 Word/PDF → Run workflow** 运行一次，几分钟后在运行页面底部的 Artifacts 下载全部文件。底稿（`slides/`、`lesson-plans/`）要提交到仓库，生成的文件不提交。
+| `course.yml` | 课程配置：书名、学时、章节、附录。改完运行 `python tools/course.py sync` |
+| `docs/chapters/` | 12 章正文 |
+| `docs/sims/` | 交互动画（每个文件夹一个，`common/` 是公共样式和脚本） |
+| `docs/tryit/`、`docs/javascripts/tryit.js`、`docs/javascripts/sqljs/` | 网页“试一试”：浏览器里的 SQLite（sql.js）和小店示例库 |
+| `docs/appendix/` | 附录 A～F |
+| `docs/learning-graph/` | 学习图谱（由 `tools/build_graph.py` 根据术语表和先修关系生成） |
+| `docs/faq/`、`docs/certificate.md` | 常见问题、证书考点对照 |
+| `labs/` | 实验 SQL 和 Python 程序、示例库数据、Docker 配置，见 `labs/README.md` |
+| `slides/`、`lesson-plans/` | 每章课件底稿（`chNN.md`）和教案底稿（`chNN.yml`） |
+| `tools/` | 维护脚本；`tools/exam/` 生成附录 F 模拟卷 |
+| `.github/workflows/pages.yml` | 推送到 `main` 后自动发布网页 |
+| `.github/workflows/exports.yml` | 手动运行，在 GitHub 上生成课件、教案和 Word/PDF 版 |
 
 ## 本地预览
 
 ```bash
 pip install -r requirements-docs.txt
 mkdocs serve          # 浏览器打开 http://127.0.0.1:8000
-mkdocs build --strict # 提交前确认没有警告
 ```
 
-## 说明
+## 维护脚本
 
-书中运行结果均为编者实测；需要 GPU、联网下载模型或调用大模型 API 的部分标为“待实测”，并附记录表。数据集来源与许可见 `labs/data/README.md`，仅用于教学。
+```bash
+python tools/course.py sync                # 按 course.yml 更新导航、首页、章节骨架、动画目录等
+python tools/glossary_links.py anchors     # 给术语表每个术语加锚点
+python tools/glossary_links.py concepts 03 # 生成第 3 章的“本章概念清单”
+python tools/build_graph.py                # 由术语表生成学习图谱数据
+python tools/graph_text.py                 # 检查学习图谱并生成文字版
+python tools/book_stats.py                 # 更新首页“全书概览”统计表
+python tools/exam/make_mock_exam.py        # 重新生成附录 F 两套模拟卷
+python tools/check_anchors.py              # 检查全站链接和锚点（先 mkdocs build）
+node tools/check_tryit.js 4                # 检查第 4 章“试一试”框里的 SQL 都能运行
+```
+
+## 课件、教案和 Word/PDF 版
+
+```bash
+pip install -r requirements-tools.txt
+npm install && npx playwright install chromium
+npm run figures                            # 把 Mermaid 图和交互动画渲染成图片
+
+python tools/make_slides.py build all      # → build/课件/第NN章 章名.pptx
+python tools/make_lesson_plan.py build all # → build/教案/第NN章 章名 教案.docx
+python tools/export_docx.py --pdf          # → build/数据库基础与应用.docx 和 .pdf（需要 pandoc 和 LibreOffice）
+```
+
+## 关于实验结果
+
+- 示例库 shop 由 `labs/data/make_shop_db.py` 用固定随机种子生成，内容为虚构；重新生成会得到完全相同的数据，正文里的行数、金额都以它为准。
+- SQL 结果是编者在 MySQL 8.4.13 和 PostgreSQL 17 + pgvector 0.8.7（`labs/docker/` 的 Docker 环境）上实际运行得到的，Python 程序用 Python 3.13 运行。
+- 唯一的“待实测”是实验 12-2 第二部分（bge-small-zh-v1.5 语义搜索）：编写环境下载不到模型，程序流程已检查，教材里附有记录表，请任课教师在能访问 Hugging Face 或魔搭的机房先跑一遍。
