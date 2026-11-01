@@ -134,6 +134,16 @@ description: 本书主要术语的中英文名称、简明定义和例子，按�
 
 | 术语 | 英文 | 定义 | 例子 |
 |---|---|---|---|
+| <span id="g-视图"></span>视图 | View | 保存在数据库中的一条 SELECT 查询，使用时像一张表，但本身不存数据，数据来自它所查询的基本表 | CREATE VIEW v_cashier_product AS SELECT product_id, name, price, stock FROM product; |
+| <span id="g-全表扫描"></span>全表扫描 | Full Table Scan | 不借助索引，把表中的每一行都读一遍来找满足条件的行；EXPLAIN 中 type 显示为 ALL | EXPLAIN 中 type = ALL，rows ≈ 100 万 |
+| <span id="g-索引"></span>索引 | Index | 按某一列或几列的值排好序、带有指向数据行位置的辅助结构，像书的目录，能让查询不用逐行查找 | CREATE INDEX idx_customer ON orders_big (customer_id); |
+| <span id="g-B+-树"></span>B+ 树 | B+ Tree | 数据库索引最常用的数据结构，像一棵倒过来的多层目录树，所有数据都在最底层的叶子上且按顺序串起来，只要几层就能从上百万行中找到目标 | 三四层就能管住上千万行 |
+| <span id="g-聚簇索引"></span>聚簇索引 | Clustered Index | 叶子节点存放整行数据的索引，InnoDB 中一般就是主键索引，表的数据本身就按主键顺序存放在这棵 B+ 树上 | InnoDB 表的主键索引 |
+| <span id="g-二级索引"></span>二级索引 | Secondary Index | 除聚簇索引以外的索引，叶子上存索引列的值和对应行的主键，找到主键后还要回到聚簇索引取整行 | idx_customer 的叶子存 (customer_id, order_id) |
+| <span id="g-组合索引"></span>组合索引 | Composite Index | 在多列上共同建立的一个索引，先按第一列排序，第一列相同时再按第二列排序，依此类推 | CREATE INDEX idx_cust_time ON orders_big (customer_id, order_time); |
+| <span id="g-最左前缀"></span>最左前缀 | Leftmost Prefix | 组合索引只有在查询条件包含它最左边的一列（或从左起连续的几列）时才能被有效使用的规则 | (customer_id, order_time) 上只查 order_time 用不上索引 |
+| <span id="g-执行计划"></span>执行计划 | Execution Plan | 数据库决定如何执行一条查询的方案，包括访问哪张表、用不用索引、预计检查多少行，可用 EXPLAIN 查看 | EXPLAIN SELECT * FROM orders_big WHERE customer_id = 12345; |
+| <span id="g-慢查询日志"></span>慢查询日志 | Slow Query Log | MySQL 把执行时间超过设定值的 SQL 自动记录下来的日志文件，用来找出需要优化的查询 | SET GLOBAL slow_query_log = ON; |
 
 ## 第 9 章 事务、存储过程与触发器
 
