@@ -1,0 +1,139 @@
+# 第 10 章教案，由 make_lesson_plan.py draft 生成后人工修改。线上：课前按节自主学习（线上理论学时）+ 课后线上实验（实验学时）；线下面授讲重点难点、讲评实验。
+chapter: 10
+online: 5
+offline: 1
+methods:
+- 讲授法
+- 案例教学法
+- 演示法
+- 线上自主学习
+- 实验教学法
+objectives:
+  knowledge:
+  - 说出 MySQL 和 PostgreSQL 的常用配置项、默认端口和主要管理工具
+  - 解释用户、权限、角色之间的关系和最小权限原则
+  skill:
+  - 使用 CREATE USER、GRANT、REVOKE 为不同岗位建账号并授权，用 mysqldump 完成备份和恢复
+  - 说明全量备份、增量备份和二进制日志各自的作用，能为小店设计一个简单的备份策略
+  - 判断一个数据库系统存在哪些安全隐患，并提出访问控制、加密、脱敏等防护办法
+  quality:
+  - 树立数据安全和个人信息保护意识，遵守《数据安全法》《个人信息保护法》
+  - 养成定期备份、演练恢复的运维习惯
+key_points:
+- MySQL 的安装与配置文件
+- PostgreSQL 与 MySQL 的写法差异
+- 用户、权限、角色与最小权限原则
+- mysqldump 备份与恢复
+- 二进制日志与时间点恢复
+- SQL 注入与数据脱敏
+difficulties:
+- point: 权限的粒度（库、表、列）和角色
+  solution: 按收银员、会计、店长三个岗位设计权限表，实验 10-1 中用不同账号登录验证“能做什么、不能做什么”
+- point: 用二进制日志做时间点恢复
+  solution: 画时间线：全量备份 → 正常业务 → 误删 → 恢复，标出备份和二进制日志各负责哪一段
+process:
+- phase: 课前（线上）
+  steps:
+  - name: 自主学习
+    minutes: 20
+    content: 10.1 MySQL 的安装与配置：在 Windows 上安装、配置文件 my.ini、启动、停止与连接
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 会安装配置 MySQL，启动和连接服务
+  - name: 自主学习
+    minutes: 20
+    content: 10.2 PostgreSQL 的安装与配置：安装与管理工具、两个配置文件、psql 的常用命令、两种数据库 SQL 写法的常见差异
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 会用 psql，知道两种数据库的写法差异
+  - name: 自主学习
+    minutes: 20
+    content: 10.3 用 Docker 一键启动数据库
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 会用 Docker 启动实验环境
+  - name: 自主学习
+    minutes: 30
+    content: 10.4 用户与权限：账号、GRANT 授权与 REVOKE 收回、角色、最小权限原则与账号安全
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 会建账号、授权和收回权限
+  - name: 自主学习
+    minutes: 40
+    content: 10.5 备份与恢复：为什么要备份、用 mysqldump 做逻辑备份、全量、增量与二进制日志、PostgreSQL 的 pg_dump等
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 会备份和恢复数据库
+  - name: 自主学习
+    minutes: 40
+    content: 10.6 数据库安全：SQL 注入、口令与网络访问控制、敏感数据的加密与脱敏、法律对数据库的要求
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 了解常见安全威胁与防护，知道相关法律要求
+  - name: 自主学习
+    minutes: 10
+    content: 10.7 前沿视窗：云数据库与“自动驾驶”的数据库
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 了解云数据库
+- phase: 课中（线下面授）
+  steps:
+  - name: 情景导入
+    minutes: 5
+    content: 情景导入：小店的数据库上线三个月，一直用 root 账号。新来的收银员小周也用这个账号登录，一天他在 DBeaver 里随手点开顾……
+    teacher: 回顾情景，请学生说出线上学习中遇到的疑问
+    student: 结合情景提出问题，分享线上学习收获
+    intent: 联系工作和生活场景，激发学习兴趣
+  - name: 重点讲解
+    minutes: 10
+    content: 10.4 用户与权限：账号、GRANT 授权与 REVOKE 收回、角色、最小权限原则与账号安全
+    teacher: 精讲本节重点和难点，结合交互动画、例题和现场运行 SQL 演示，针对线上小测中的错误答疑
+    student: 跟着运行和推导、回答提问，订正线上小测中的错误
+    intent: 会建账号、授权和收回权限
+  - name: 重点讲解
+    minutes: 10
+    content: 10.5 备份与恢复：为什么要备份、用 mysqldump 做逻辑备份、全量、增量与二进制日志、PostgreSQL 的 pg_dump等
+    teacher: 精讲本节重点和难点，结合交互动画、例题和现场运行 SQL 演示，针对线上小测中的错误答疑
+    student: 跟着运行和推导、回答提问，订正线上小测中的错误
+    intent: 会备份和恢复数据库
+  - name: 课堂练习
+    minutes: 10
+    content: 课后练习中的单选、判断题（在线作答，共 9 题，选做）
+    teacher: 组织学生在网页上作答，讲评错误率高的题
+    student: 在线作答，查看解析
+    intent: 即时检验学习效果
+  - name: 实验讲评与答疑
+    minutes: 5
+    content: 讲评上一章实验报告中的共性问题，说明本章实验的关键步骤和注意事项
+    teacher: 展示典型实验结果和常见错误，布置本章实验
+    student: 对照讲评检查自己的实验，记录本章实验要点
+    intent: 衔接线上实验，减少实验中的卡顿
+  - name: 小结
+    minutes: 5
+    content: 用本章知识导图回顾要点，预告下一章
+    teacher: 带领学生梳理知识导图
+    student: 复述本章要点
+    intent: 形成知识结构
+- phase: 课后（线上）
+  steps:
+  - name: 线上实验
+    minutes: 45
+    content: 实验 10-1 为三个岗位建账号并授权
+    teacher: 在学习平台发布实验指导，在线答疑，批改实验报告
+    student: 按教材步骤完成实验，填写记录表，提交实验报告
+    intent: 动手完成实验关键步骤，把本章知识用到实际操作中
+  - name: 课后巩固（课外）
+    minutes: 60
+    content: 完成本章课后练习（在线作答 9 题，简答 / 实操 5 题），提交实验报告
+    teacher: 批改作业和实验报告，在讨论区答疑
+    student: 完成练习，错题点“回看”复习对应小节
+    intent: 巩固知识，形成技能
+homework:
+- 简答题：什么是最小权限原则？以“学生选课系统”为例，说明学生、任课教师、教务员三类账号分别应该有哪些权限。
+- 简答题：什么是全量备份和增量备份？二进制日志在恢复中起什么作用？
+- 简答题：用户在登录框的用户名处输入 `' OR '1'='1`，程序用拼接字符串的方式生成 `SELECT * FROM users WHERE username = '输入' AND …`。说明这会造成什么问题，以及从程序和数据库两方面怎样防范。
+- 实操题：选课库 school 中有 student、course、sc 三张表。写出 SQL：① 创建只能从 192.168.10 网段登录的账号 teacher_li，口令为 `Li#2026`；② 授予他查询 student、course 表，以及查询和修改 sc 表 grade 列的权限；③ 查看他的权限；④ 学期结束后，收回他修改成绩的权限。
+- 实操题：写出命令：① 用 mysqldump 把 school 库（含存储过程和触发器）备份到 `D:\backup\school.sql`；② school 库被误删后，用这个文件恢复。说明这两条命令应该在哪里运行，并为学校的选课系统设计一个简单的备份策略（备份频率、保留时间、存放位置、验证方法各一句）。
+- 实验报告：实验 10-1、实验 10-2、实验 10-3
+assessment: 课堂练习正确率、课后作业和实验报告计入平时成绩
+reflection: ''

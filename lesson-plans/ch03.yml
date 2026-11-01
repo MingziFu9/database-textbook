@@ -1,0 +1,162 @@
+# 第 3 章教案，由 make_lesson_plan.py draft 生成后人工修改。线上：课前按节自主学习（线上理论学时）+ 课后线上实验（实验学时）；线下面授讲重点难点、讲评实验。
+chapter: 3
+online: 7
+offline: 2
+methods:
+- 讲授法
+- 案例教学法
+- 演示法
+- 线上自主学习
+- 实验教学法
+objectives:
+  knowledge:
+  - 说出 SQL 的特点和 DDL、DML、DQL、DCL 四类语句各管什么
+  - 为一列数据选择合适的数据类型，说出 DECIMAL 和 FLOAT、CHAR 和 VARCHAR 的区别
+  skill:
+  - 写出建库、建表语句，在表上定义主键、外键、非空、唯一、默认值、检查约束
+  - 运行并修改给定的 SQL，完成修改表结构、插入、修改、删除数据和从 CSV 导入数据
+  - 判断一条 UPDATE 或 DELETE 会影响哪些行，养成“先查后改”的习惯
+  quality:
+  - 养成“改数据前先确认范围、重要操作先备份”的安全操作习惯
+  - 体会规范命名和选对数据类型对后续工作的影响
+key_points:
+- 四类 SQL 语句和书写规则
+- 常用数据类型的选择
+- 六种约束的写法
+- ALTER、DROP、TRUNCATE 的区别
+- INSERT、UPDATE、DELETE 与 WHERE
+difficulties:
+- point: 为每一列选合适的数据类型，特别是金额、手机号
+  solution: 用“选类型的口诀”和反例（FLOAT 存金额的误差、INT 存手机号溢出）对比讲解
+- point: 建表顺序和外键参照动作
+  solution: 先画出 8 张表的依赖关系，按“先被参照、后参照”的顺序建表；演示 RESTRICT、CASCADE、SET NULL 的不同结果
+process:
+- phase: 课前（线上）
+  steps:
+  - name: 自主学习
+    minutes: 20
+    content: 3.1 认识 SQL：SQL 的特点、四类 SQL 语句、书写规则
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 说出 SQL 的特点和四类语句，遵守书写规则
+  - name: 自主学习
+    minutes: 20
+    content: 3.2 建数据库：CREATE DATABASE 与字符集、删除数据库
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 会建库并指定字符集
+  - name: 自主学习
+    minutes: 45
+    content: 3.3 数据类型：为每一列选“容器”：数值类型、字符串类型、日期时间类型、选类型的口诀
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 会为每一列选合适的数据类型
+  - name: 自主学习
+    minutes: 45
+    content: 3.4 建表与约束：CREATE TABLE 的基本格式、六种常用约束、列级约束与表级约束、外键的参照动作等
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 会建表并写出六种约束
+  - name: 自主学习
+    minutes: 20
+    content: 3.5 修改和删除表：ALTER TABLE、复制表、DROP 与 TRUNCATE
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 会修改表结构，分清 DROP 与 TRUNCATE
+  - name: 自主学习
+    minutes: 45
+    content: 3.6 插入、修改、删除数据：INSERT、UPDATE、DELETE、“忘写 WHERE”的事故与防护
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 会增删改数据，避免“忘写 WHERE”
+  - name: 自主学习
+    minutes: 20
+    content: 3.7 从文件导入数据
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件、在“试一试”框里运行 SQL，完成节后小测
+    intent: 会从 CSV 文件批量导入数据
+  - name: 自主学习
+    minutes: 10
+    content: 3.8 前沿视窗：让大模型帮你写建表语句
+    teacher: 在学习平台发布本节学习任务和思考题，在线答疑
+    student: 阅读网页教材、观看课件，完成节后小测
+    intent: 能审查大模型写的建表语句
+- phase: 课中（线下面授）
+  steps:
+  - name: 情景导入
+    minutes: 5
+    content: 情景导入：第 2 章，小林在纸上把小店的大表拆成了几张关系表。现在要把它们真正建到 MySQL 里去。他打开 DBeaver，发现……
+    teacher: 回顾情景，请学生说出线上学习中遇到的疑问
+    student: 结合情景提出问题，分享线上学习收获
+    intent: 联系工作和生活场景，激发学习兴趣
+  - name: 重点讲解
+    minutes: 15
+    content: 3.3 数据类型：为每一列选“容器”：数值类型、字符串类型、日期时间类型、选类型的口诀
+    teacher: 精讲本节重点和难点，结合交互动画、例题和现场运行 SQL 演示，针对线上小测中的错误答疑
+    student: 跟着运行和推导、回答提问，订正线上小测中的错误
+    intent: 会为每一列选合适的数据类型
+  - name: 重点讲解
+    minutes: 15
+    content: 3.4 建表与约束：CREATE TABLE 的基本格式、六种常用约束、列级约束与表级约束、外键的参照动作等
+    teacher: 精讲本节重点和难点，结合交互动画、例题和现场运行 SQL 演示，针对线上小测中的错误答疑
+    student: 跟着运行和推导、回答提问，订正线上小测中的错误
+    intent: 会建表并写出六种约束
+  - name: 重点讲解
+    minutes: 15
+    content: 3.6 插入、修改、删除数据：INSERT、UPDATE、DELETE、“忘写 WHERE”的事故与防护
+    teacher: 精讲本节重点和难点，结合交互动画、例题和现场运行 SQL 演示，针对线上小测中的错误答疑
+    student: 跟着运行和推导、回答提问，订正线上小测中的错误
+    intent: 会增删改数据，避免“忘写 WHERE”
+  - name: 分层练习
+    minutes: 20
+    content: 按基础题、提高题两层安排本章重点内容的课堂练习（写 SQL 或设计题），学生独立完成后同桌互查
+    teacher: 分层布置练习，巡视指导，投屏讲评典型错误
+    student: 独立完成练习，上机验证，同桌互查
+    intent: 通过练习突破本章难点
+  - name: 课堂练习
+    minutes: 10
+    content: 课后练习中的单选、判断题（在线作答，共 18 题，选做）
+    teacher: 组织学生在网页上作答，讲评错误率高的题
+    student: 在线作答，查看解析
+    intent: 即时检验学习效果
+  - name: 实验讲评与答疑
+    minutes: 5
+    content: 讲评上一章实验报告中的共性问题，说明本章实验的关键步骤和注意事项
+    teacher: 展示典型实验结果和常见错误，布置本章实验
+    student: 对照讲评检查自己的实验，记录本章实验要点
+    intent: 衔接线上实验，减少实验中的卡顿
+  - name: 小结
+    minutes: 5
+    content: 用本章知识导图回顾要点，预告下一章
+    teacher: 带领学生梳理知识导图
+    student: 复述本章要点
+    intent: 形成知识结构
+- phase: 课后（线上）
+  steps:
+  - name: 线上实验
+    minutes: 45
+    content: 实验 3-1 建 myshop 库并从 CSV 导入数据
+    teacher: 在学习平台发布实验指导，在线答疑，批改实验报告
+    student: 按教材步骤完成实验，填写记录表，提交实验报告
+    intent: 动手完成实验关键步骤，把本章知识用到实际操作中
+  - name: 线上实验
+    minutes: 45
+    content: 实验 3-2 修改表结构与增删改数据
+    teacher: 在学习平台发布实验指导，在线答疑，批改实验报告
+    student: 按教材步骤完成实验，填写记录表，提交实验报告
+    intent: 动手完成实验关键步骤，把本章知识用到实际操作中
+  - name: 课后巩固（课外）
+    minutes: 60
+    content: 完成本章课后练习（在线作答 18 题，简答 / 实操 5 题），提交实验报告
+    teacher: 批改作业和实验报告，在讨论区答疑
+    student: 完成练习，错题点“回看”复习对应小节
+    intent: 巩固知识，形成技能
+homework:
+- 简答题：比较 DROP TABLE、TRUNCATE TABLE 和 DELETE FROM 的区别。
+- 简答题：为什么存钱要用 DECIMAL 而不是 FLOAT？为什么手机号要用 CHAR 而不是 INT？
+- 简答题：说出六种常用约束的关键字和作用。
+- 实操题：为学生选课数据库写出建表语句：学生表 student（学号 sno CHAR(10) 主键，姓名 sname 非空，性别 ssex 只能是男或女，出生日期 sbirth），课程表 course（课程号 cno CHAR(6) 主键，课程名 cname 非空且唯一，学分 credit 为 1～6 的整数），选课表 sc（学号、课程号为复合主键并分别是外键，成绩 grade 为 0～100 的小数，保留一位）。
+- 实操题：在上题的表中：① 插入学生（'2026010001', '王小明', '男', '2000-05-01'）；② 把课程 'C00001' 的学分改为 4；③ 删除学号为 '2026010001' 的学生的全部选课记录。写出 SQL。
+- 实验报告：实验 3-1、实验 3-2、实验 3-3
+assessment: 课堂练习正确率、课后作业和实验报告计入平时成绩
+reflection: ''

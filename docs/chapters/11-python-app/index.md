@@ -239,7 +239,7 @@ def place_order(customer_id, employee_id, items):
             order_id = cur.lastrowid                               # 新订单号
             for product_id, qty in items:
                 cur.execute("SELECT price, stock FROM product WHERE product_id = %s FOR UPDATE",
-                            (product_id,))                         # 读库存并加锁（9.3）
+                            (product_id,))                         # 读库存并加锁（9.2.4）
                 price, stock = cur.fetchone()
                 if stock < qty:
                     raise ValueError(f"商品 {product_id} 库存只有 {stock}，不够 {qty}")
@@ -256,7 +256,7 @@ def place_order(customer_id, employee_id, items):
         conn.close()
 ```
 
-`SELECT … FOR UPDATE` 在读库存的同时给这一行加锁（第 9 章 9.3 节），防止两个收银台同时卖最后一件。编者先买 2 袋燕麦片，再在同一单里买 1 袋燕麦片和 1 包挂面（挂面库存为 0）：
+`SELECT … FOR UPDATE` 在读库存的同时给这一行加锁（第 9 章 9.2.4 节），防止两个收银台同时卖最后一件。编者先买 2 袋燕麦片，再在同一单里买 1 袋燕麦片和 1 包挂面（挂面库存为 0）：
 
 ```text
 ③ 下单前库存：燕麦片 91 ，挂面 0
