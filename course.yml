@@ -56,3 +56,53 @@ lesson_plan:
   online_ratio: 0.5                   # 线上学时占比（开放大学以线上为主，按实际改）
   teacher: ""                         # 授课教师，留空则教案上留出填写位置
   school: ""                          # 学校名称，留空则不显示
+
+# 首页“先玩一玩”轮播：按轮播顺序写，第 1 个放画面最震撼的。sim 是 docs/sims/ 下的目录名，hook 是一句问句，play 是一句玩法；
+# steps 是录短视频时自动做的操作（写法见 编写规范.md“首页轮播”）。改完运行 python tools/showcase.py record 重录视频。
+showcase_tagline: "从一张表到向量数据库，数据怎样存、怎样查"
+showcase:
+  - sim: hnsw-search
+    hook: "40 个点里找最像的，只要算 11 次距离"
+    play: "从顶层大步跳，到底层细细找。"
+    steps:
+      - ["click", "播放", {"hold": 4.5}]
+      - ["poster"]
+      - ["click", "查询 2", {"hold": 0.4}]
+      - ["click", "播放", {"hold": 3.5}]
+  - sim: sql-injection
+    hook: "输入一行怪字符，就能查出别人的数据？"
+    play: "拼接写法和参数化写法并排对比。"
+    vw: 860
+    steps:
+      - ["click", "正常手机号", {"hold": 1.2}]
+      - ["click", "注入：' OR '1'='1", {"hold": 1.5}]
+      - ["poster"]
+      - ["click", "注入：删表", {"hold": 1.5}]
+  - sim: join-types
+    hook: "两张表拼在一起，谁留下、谁被丢掉？"
+    play: "内连接、左连接、右连接一键切换。"
+    vw: 860
+    steps:
+      - ["click", "内连接 INNER JOIN", {"hold": 1}]
+      - ["click", "左连接 LEFT JOIN", {"hold": 1}]
+      - ["poster"]
+      - ["click", "右连接 RIGHT JOIN", {"hold": 1}]
+      - ["click", "全连接（UNION 代替）", {"hold": 1}]
+      - ["click", "忘写连接条件", {"hold": 1.2}]
+  - sim: vector-space
+    hook: "拖动查询点，看看谁和“麦片”最近"
+    play: "余弦相似度和欧氏距离排出的名次不一样。"
+    steps:
+      - ["click", "软一点的早餐", {"hold": 1}]
+      - ["click", "解馋的零食", {"hold": 1}]
+      - ["poster"]
+      - ["click", "洗衣服用的", {"hold": 1}]
+      - ["click", "欧氏距离（越小越近）", {"hold": 0.8}]
+      - ["click", "早餐（缩短一半）", {"hold": 1.2}]
+  - sim: bplus-tree
+    hook: "为什么加了索引，查询就快了？"
+    play: "从根节点走到叶子，路径一路高亮。"
+    steps:
+      - ["click", "查找", {"hold": 2}]
+      - ["poster"]
+      - ["click", "范围查找", {"hold": 2.5}]

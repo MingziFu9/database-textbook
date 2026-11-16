@@ -9,6 +9,22 @@
     5 学分 · 90 学时（理论 72 学时 + 实验 18 学时） · 第 2 学期 · 12 章 · 36 个实验 · 期末闭卷
 <!-- course:end -->
 
+<!-- showcase:start -->
+## 先玩一玩
+
+<p class="sc-tagline">从一张表到向量数据库，数据怎样存、怎样查</p>
+
+<div class="showcase" aria-label="精选交互动画">
+<ol class="sc-list">
+<li data-sim="sims/hnsw-search/main.html" data-video="assets/showcase/hnsw-search" data-title="HNSW 分层搜索" data-play="从顶层大步跳，到底层细细找。"><img src="assets/showcase/hnsw-search.jpg" alt="HNSW 分层搜索截图" loading="lazy"><p class="sc-hook">40 个点里找最像的，只要算 11 次距离</p><p><b>HNSW 分层搜索</b>　从顶层大步跳，到底层细细找。</p><p><a href="sims/hnsw-search/main.html">打开动画</a>　<a class="sc-chap" href="chapters/12-vector-db/" title="第 12 章 向量数据库原理">去读第12章 →</a></p></li>
+<li data-sim="sims/sql-injection/main.html" data-video="assets/showcase/sql-injection" data-title="SQL 注入演示" data-play="拼接写法和参数化写法并排对比。"><img src="assets/showcase/sql-injection.jpg" alt="SQL 注入演示截图" loading="lazy"><p class="sc-hook">输入一行怪字符，就能查出别人的数据？</p><p><b>SQL 注入演示</b>　拼接写法和参数化写法并排对比。</p><p><a href="sims/sql-injection/main.html">打开动画</a>　<a class="sc-chap" href="chapters/11-python-app/" title="第 11 章 用 Python 开发数据库应用">去读第11章 →</a></p></li>
+<li data-sim="sims/join-types/main.html" data-video="assets/showcase/join-types" data-title="四种连接对比" data-play="内连接、左连接、右连接一键切换。"><img src="assets/showcase/join-types.jpg" alt="四种连接对比截图" loading="lazy"><p class="sc-hook">两张表拼在一起，谁留下、谁被丢掉？</p><p><b>四种连接对比</b>　内连接、左连接、右连接一键切换。</p><p><a href="sims/join-types/main.html">打开动画</a>　<a class="sc-chap" href="chapters/05-multi-table-query/" title="第 5 章 多表查询：连接与子查询">去读第5章 →</a></p></li>
+<li data-sim="sims/vector-space/main.html" data-video="assets/showcase/vector-space" data-title="词语向量空间" data-play="余弦相似度和欧氏距离排出的名次不一样。"><img src="assets/showcase/vector-space.jpg" alt="词语向量空间截图" loading="lazy"><p class="sc-hook">拖动查询点，看看谁和“麦片”最近</p><p><b>词语向量空间</b>　余弦相似度和欧氏距离排出的名次不一样。</p><p><a href="sims/vector-space/main.html">打开动画</a>　<a class="sc-chap" href="chapters/12-vector-db/" title="第 12 章 向量数据库原理">去读第12章 →</a></p></li>
+<li data-sim="sims/bplus-tree/main.html" data-video="assets/showcase/bplus-tree" data-title="B+ 树查找" data-play="从根节点走到叶子，路径一路高亮。"><img src="assets/showcase/bplus-tree.jpg" alt="B+ 树查找截图" loading="lazy"><p class="sc-hook">为什么加了索引，查询就快了？</p><p><b>B+ 树查找</b>　从根节点走到叶子，路径一路高亮。</p><p><a href="sims/bplus-tree/main.html">打开动画</a>　<a class="sc-chap" href="chapters/08-view-index/" title="第 8 章 视图、索引与查询优化">去读第8章 →</a></p></li>
+</ol>
+</div>
+<!-- showcase:end -->
+
 ## 这本书讲什么
 
 网购下单、扫码付款、医院挂号、小区门口便利店的收银机，背后都有一个数据库在默默记账。数据库怎样把成千上万条记录存得井井有条？怎样用一句话从百万行订单里查出“上个月卖得最好的商品”？一个新系统的表该怎么设计？数据丢了、被偷了怎么办？大模型应用里常说的“向量数据库”又是什么？这些就是本书要回答的问题。
