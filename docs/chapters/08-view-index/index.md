@@ -213,6 +213,22 @@ InnoDB 的表有两种索引：<sup class="cite">[[7]](#ref8-7)</sup>
 1. **每张表都要有主键**，最好是短小的、自动增长的整数（第 3 章就是这么做的）。主键越短，所有二级索引越小；
 2. 如果查询要的列**全在二级索引里**，就不用回表，更快。这叫**覆盖索引**，EXPLAIN 的 Extra 列会显示 `Using index`。这也是“不要 SELECT *，只取需要的列”的原因之一。
 
+??? microvideo "思维工具微课｜索引，越多越好吗？　4 分 21 秒"
+
+    <video class="mv-video" controls preload="none" playsinline poster="../../assets/video/b3.jpg">
+      <source src="../../assets/video/b3.mp4" type="video/mp4">
+    </video>
+
+    **这一集的思维工具：权衡表。** 什么时候用：一个办法看着全是好处。怎么用：得与失各写一列。局限：情况变了要重算。
+
+    **看完选两件做：**
+
+    - 玩一玩：看索引查找的动画。
+    - 审一审 AI：问它该给哪些列加索引，再追问代价。
+    - 想一想自己：给一个“好办法”列得失。
+
+    <p class="mv-note">本片配音和部分画面由 AI 生成。</p>
+
 ## 8.3 创建和管理索引
 
 ### 8.3.1 四种常用索引

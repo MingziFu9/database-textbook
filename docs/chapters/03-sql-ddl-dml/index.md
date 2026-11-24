@@ -528,6 +528,22 @@ ERROR 1175 (HY000) at line 1: You are using safe update mode and you tried to up
 
 DBeaver 默认对没有 WHERE 的 UPDATE、DELETE 会弹出确认框，看到它时要停下来想一想。
 
+??? microvideo "思维工具微课｜改一个价格，全店都变了　4 分 33 秒"
+
+    <video class="mv-video" controls preload="none" playsinline poster="../../assets/video/b1.jpg">
+      <source src="../../assets/video/b1.mp4" type="video/mp4">
+    </video>
+
+    **这一集的思维工具：先留退路。** 什么时候用：改和删，没有撤销键。怎么用：先看会动到什么。局限：退路要试过才算数。
+
+    **看完选两件做：**
+
+    - 玩一玩：在网页里试试先查后改。
+    - 审一审 AI：让它写修改语句，看有没有条件。
+    - 想一想自己：哪一步按下去收不回。
+
+    <p class="mv-note">本片配音和部分画面由 AI 生成。</p>
+
 ## 3.7 从文件导入数据
 
 实际工作中，数据很少一行行手敲 INSERT，更多是从 Excel、CSV 文件批量导入。有两种做法：

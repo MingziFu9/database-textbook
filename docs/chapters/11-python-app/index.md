@@ -177,6 +177,22 @@ col = allowed.get(user_choice, "product_id")            # 不在名单里就用�
 cur.execute(f"SELECT name FROM product ORDER BY {col}")
 ```
 
+??? microvideo "思维工具微课｜输入框里的一句话　4 分 36 秒"
+
+    <video class="mv-video" controls preload="none" playsinline poster="../../assets/video/b6.jpg">
+      <source src="../../assets/video/b6.mp4" type="video/mp4">
+    </video>
+
+    **这一集的思维工具：验收标准先行。** 什么时候用：东西要交给别人用。怎么用：清单里写上“不正常”的。局限：一个人想不全。
+
+    **看完选两件做：**
+
+    - 玩一玩：看注入是怎么发生的动画。
+    - 审一审 AI：让它写查询程序，看有没有拼接输入。
+    - 想一想自己：给手上的事写三条“坏情况”。
+
+    <p class="mv-note">本片配音和部分画面由 AI 生成。</p>
+
 ## 11.3 在程序里写增删改和事务
 
 ### 11.3.1 连接配置不写进代码

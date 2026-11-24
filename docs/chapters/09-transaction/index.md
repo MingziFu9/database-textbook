@@ -145,6 +145,22 @@ ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint f
 
     哪怕程序有漏洞，数据库也不会让库存变成负数。
 
+??? microvideo "思维工具微课｜扣了库存，订单却没记上　4 分 07 秒"
+
+    <video class="mv-video" controls preload="none" playsinline poster="../../assets/video/b4.jpg">
+      <source src="../../assets/video/b4.mp4" type="video/mp4">
+    </video>
+
+    **这一集的思维工具：先留退路。** 什么时候用：一件事要好几步做完。怎么用：先想好：失败了退到哪。局限：发出去的收不回。
+
+    **看完选两件做：**
+
+    - 玩一玩：看两个收银台同时操作的动画。
+    - 审一审 AI：让它写下单程序，看有没有用事务。
+    - 想一想自己：哪件事做到一半最麻烦。
+
+    <p class="mv-note">本片配音和部分画面由 AI 生成。</p>
+
 ## 9.2 并发与隔离级别
 
 ### 9.2.1 并发带来的三种问题

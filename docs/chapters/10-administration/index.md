@@ -399,6 +399,22 @@ ERROR 3955 (HY000): Access denied for user 'temp'@'localhost'. Account is blocke
 
     编者用 clerk 登录后查手机号、改价格，分别得到 `ERROR:  permission denied for table customer` 和 `ERROR:  permission denied for table product`。GRANT、REVOKE 的写法和 MySQL 几乎一样。
 
+??? microvideo "思维工具微课｜店员该看到会员的手机号吗？　4 分 37 秒"
+
+    <video class="mv-video" controls preload="none" playsinline poster="../../assets/video/b5.jpg">
+      <source src="../../assets/video/b5.mp4" type="video/mp4">
+    </video>
+
+    **这一集的思维工具：授权与知情。** 什么时候用：要把钥匙交给别人。怎么用：需要吗？主人知道吗？。局限：人走了，权限要收回。
+
+    **看完选两件做：**
+
+    - 玩一玩：给老板、店员、会计各开一个账号。
+    - 审一审 AI：让它写授权语句，看是不是给多了。
+    - 想一想自己：数一数谁有你的钥匙。
+
+    <p class="mv-note">本片配音和部分画面由 AI 生成。</p>
+
 ## 10.5 备份与恢复
 
 ### 10.5.1 为什么要备份
